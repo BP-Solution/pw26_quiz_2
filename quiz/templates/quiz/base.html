@@ -22,9 +22,9 @@
             <a href="{% url 'home' %}" class="{% if active == 'home' %}active{% endif %}">Home</a>
 
             <div class="nav-section-title">Ricerca</div>
-            <a href="#" class="{% if active == 'utenti' %}active{% endif %}">Utenti</a>
-            <a href="#" class="{% if active == 'quiz' %}active{% endif %}">Quiz</a>
-            <a href="#" class="{% if active == 'partecipazioni' %}active{% endif %}">Partecipazioni</a>
+            <a href="{% url 'ricerca_utenti' %}" class="{% if active == 'utenti' %}active{% endif %}">Utenti</a>
+            <a href="{% url 'ricerca_quiz' %}" class="{% if active == 'quiz' %}active{% endif %}">Quiz</a>
+            <a href="{% url 'ricerca_partecipazioni' %}" class="{% if active == 'partecipazioni' %}active{% endif %}">Partecipazioni</a>
         </nav>
 
         <div class="main-area">

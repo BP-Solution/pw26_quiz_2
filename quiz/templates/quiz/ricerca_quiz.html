@@ -1,0 +1,66 @@
+{% extends "quiz/base.html" %}
+
+{% block title %}Ricerca Quiz{% endblock %}
+
+{% block search_panel %}
+<div class="search-panel">
+    <h1>Ricerca Quiz</h1>
+    <form method="get" action="{% url 'ricerca_quiz' %}" class="search-form">
+        <div class="form-group">
+            <label for="titolo">Titolo</label>
+            <input type="text" id="titolo" name="titolo" value="{{ filtri.titolo }}">
+        </div>
+        <div class="form-group">
+            <label for="creatore">Creatore</label>
+            <input type="text" id="creatore" name="creatore" value="{{ filtri.creatore }}">
+        </div>
+        <div class="form-group">
+            <label for="data_da">Inizio dal</label>
+            <input type="date" id="data_da" name="data_da" value="{{ filtri.data_da }}">
+        </div>
+        <div class="form-group">
+            <label for="data_a">Fine entro il</label>
+            <input type="date" id="data_a" name="data_a" value="{{ filtri.data_a }}">
+        </div>
+        <button type="submit" class="btn btn-primary">Cerca</button>
+        <a href="{% url 'ricerca_quiz' %}" class="btn btn-secondary">Azzera</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="results-toolbar">
+    <span class="results-count">{{ elenco_quiz|length }} quiz trovat{{ elenco_quiz|length|pluralize:"o,i" }}</span>
+</div>
+
+{% if elenco_quiz %}
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Titolo</th>
+                <th>Creatore</th>
+                <th>Data inizio</th>
+                <th>Data fine</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for quiz in elenco_quiz %}
+            <tr>
+                <td><a href="{% url 'dettaglio_quiz' quiz.id %}" class="table-link">{{ quiz.titolo }}</a></td>
+                <td>{{ quiz.creatore.nome_utente }}</td>
+                <td>{{ quiz.data_inizio|date:"d/m/Y" }}</td>
+                <td>{{ quiz.data_fine|date:"d/m/Y" }}</td>
+                <td class="actions-cell">
+                    <a href="{% url 'dettaglio_quiz' quiz.id %}" class="btn btn-secondary btn-sm">Dettaglio</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="msg-empty">Nessun quiz corrisponde ai criteri di ricerca. Modificare i filtri e riprovare.</div>
+{% endif %}
+{% endblock %}

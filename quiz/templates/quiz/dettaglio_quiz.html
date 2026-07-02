@@ -1,0 +1,76 @@
+{% extends "quiz/base.html" %}
+
+{% block title %}{{ quiz.titolo }}{% endblock %}
+
+{% block search_panel %}
+<div class="search-panel">
+    <div class="panel-header">
+        <h1>{{ quiz.titolo }}</h1>
+        <a href="{% url 'ricerca_quiz' %}" class="btn btn-secondary btn-sm">Torna alla ricerca</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="detail-section">
+    <h2>Informazioni quiz</h2>
+    <div class="detail-grid">
+        <div class="detail-field">
+            <label>Creatore</label>
+            <span>{{ quiz.creatore.nome_utente }} ({{ quiz.creatore.nome }} {{ quiz.creatore.cognome }})</span>
+        </div>
+        <div class="detail-field">
+            <label>Data inizio</label>
+            <span>{{ quiz.data_inizio|date:"d/m/Y" }}</span>
+        </div>
+        <div class="detail-field">
+            <label>Data fine</label>
+            <span>{{ quiz.data_fine|date:"d/m/Y" }}</span>
+        </div>
+        <div class="detail-field">
+            <label>Domande</label>
+            <span>{{ domande|length }}</span>
+        </div>
+        <div class="detail-field">
+            <label>Partecipazioni</label>
+            <span>{{ n_partecipazioni }}</span>
+        </div>
+    </div>
+</div>
+
+{% for domanda in domande %}
+<div class="table-block">
+    <div class="section-title">Domanda {{ domanda.numero }} — {{ domanda.testo }}</div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>N.</th>
+                    <th>Testo risposta</th>
+                    <th>Tipo</th>
+                    <th>Punteggio</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for risposta in domanda.risposte.all %}
+                <tr>
+                    <td>{{ risposta.numero }}</td>
+                    <td>{{ risposta.testo }}</td>
+                    <td>
+                        {% if risposta.tipo == "Corretta" %}
+                        <span class="badge badge-success">Corretta</span>
+                        {% else %}
+                        <span class="badge badge-danger">Sbagliata</span>
+                        {% endif %}
+                    </td>
+                    <td>{% if risposta.punteggio is not None %}{{ risposta.punteggio }}{% else %}—{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% empty %}
+<div class="msg-empty">Questo quiz non contiene domande.</div>
+{% endfor %}
+{% endblock %}

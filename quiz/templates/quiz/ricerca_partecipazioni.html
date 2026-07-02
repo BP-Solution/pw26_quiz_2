@@ -1,0 +1,60 @@
+{% extends "quiz/base.html" %}
+
+{% block title %}Ricerca Partecipazioni{% endblock %}
+
+{% block search_panel %}
+<div class="search-panel">
+    <h1>Ricerca Partecipazioni</h1>
+    <form method="get" action="{% url 'ricerca_partecipazioni' %}" class="search-form">
+        <div class="form-group">
+            <label for="utente">Utente</label>
+            <input type="text" id="utente" name="utente" value="{{ filtri.utente }}">
+        </div>
+        <div class="form-group">
+            <label for="quiz">Quiz</label>
+            <input type="text" id="quiz" name="quiz" value="{{ filtri.quiz }}">
+        </div>
+        <div class="form-group">
+            <label for="data_da">Dal</label>
+            <input type="date" id="data_da" name="data_da" value="{{ filtri.data_da }}">
+        </div>
+        <div class="form-group">
+            <label for="data_a">Al</label>
+            <input type="date" id="data_a" name="data_a" value="{{ filtri.data_a }}">
+        </div>
+        <button type="submit" class="btn btn-primary">Cerca</button>
+        <a href="{% url 'ricerca_partecipazioni' %}" class="btn btn-secondary">Azzera</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="results-toolbar">
+    <span class="results-count">{{ partecipazioni|length }} partecipazion{{ partecipazioni|length|pluralize:"e,i" }} trovat{{ partecipazioni|length|pluralize:"a,e" }}</span>
+</div>
+
+{% if partecipazioni %}
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Utente</th>
+                <th>Quiz</th>
+                <th>Data</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for partecipazione in partecipazioni %}
+            <tr>
+                <td>{{ partecipazione.utente.nome_utente }}</td>
+                <td><a href="{% url 'dettaglio_quiz' partecipazione.quiz.id %}" class="table-link">{{ partecipazione.quiz.titolo }}</a></td>
+                <td>{{ partecipazione.data|date:"d/m/Y" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="msg-empty">Nessuna partecipazione corrisponde ai criteri di ricerca. Modificare i filtri e riprovare.</div>
+{% endif %}
+{% endblock %}

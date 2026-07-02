@@ -9,8 +9,8 @@
         <h1>Sistema di gestione quiz online</h1>
         <p>Piattaforma per creare quiz, gestire domande e risposte e registrare le partecipazioni degli utenti. Versione ristrutturata in Python e Django a partire dal primo progetto.</p>
         <div class="hero-actions">
-            <a href="#" class="btn btn-secondary">Esplora i quiz</a>
-            <a href="#" class="btn btn-primary">Vedi le partecipazioni</a>
+            <a href="{% url 'ricerca_quiz' %}" class="btn btn-secondary">Esplora i quiz</a>
+            <a href="{% url 'ricerca_partecipazioni' %}" class="btn btn-primary">Vedi le partecipazioni</a>
         </div>
     </div>
 
