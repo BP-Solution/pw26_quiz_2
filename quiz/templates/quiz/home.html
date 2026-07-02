@@ -1,0 +1,57 @@
+{% extends "quiz/base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<section class="home-hero">
+    <div class="home-hero-content">
+        <span class="eyebrow">Programmazione Web 2025-2026</span>
+        <h1>Sistema di gestione quiz online</h1>
+        <p>Piattaforma per creare quiz, gestire domande e risposte e registrare le partecipazioni degli utenti. Versione ristrutturata in Python e Django a partire dal primo progetto.</p>
+        <div class="hero-actions">
+            <a href="#" class="btn btn-secondary">Esplora i quiz</a>
+            <a href="#" class="btn btn-primary">Vedi le partecipazioni</a>
+        </div>
+    </div>
+
+    <aside class="project-card">
+        <span class="project-code">Progetto 120</span>
+        <h2>Database Quiz</h2>
+        <dl>
+            <div>
+                <dt>Tabella CRUD</dt>
+                <dd>Partecipazione</dd>
+            </div>
+            <div>
+                <dt>Interfaccia</dt>
+                <dd>Interfaccia 3</dd>
+            </div>
+            <div>
+                <dt>Palette</dt>
+                <dd>Beige</dd>
+            </div>
+        </dl>
+    </aside>
+</section>
+
+<div class="home-content">
+    <div class="home-stats">
+        <div class="stat-card">
+            <span>Utenti</span>
+            <strong>{{ n_utenti }}</strong>
+        </div>
+        <div class="stat-card">
+            <span>Quiz</span>
+            <strong>{{ n_quiz }}</strong>
+        </div>
+        <div class="stat-card">
+            <span>Domande</span>
+            <strong>{{ n_domande }}</strong>
+        </div>
+        <div class="stat-card">
+            <span>Partecipazioni</span>
+            <strong>{{ n_partecipazioni }}</strong>
+        </div>
+    </div>
+</div>
+{% endblock %}
