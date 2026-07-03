@@ -1,7 +1,9 @@
+{# Pagina di conferma eliminazione di una partecipazione, con riepilogo dei dati prima della cancellazione definitiva. #}
 {% extends "quiz/base.html" %}
 
 {% block title %}Elimina partecipazione{% endblock %}
 
+{# Intestazione con link per tornare all'elenco partecipazioni senza eliminare nulla. #}
 {% block search_panel %}
 <div class="search-panel">
     <div class="panel-header">
@@ -12,6 +14,7 @@
 {% endblock %}
 
 {% block content %}
+{# Riepilogo della partecipazione e form di conferma dell'eliminazione. #}
 <div class="crud-card">
     <h2>Confermare l'eliminazione?</h2>
 

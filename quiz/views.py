@@ -1,3 +1,6 @@
+# Quiz Online - Progetto #2, gruppo BP Solutions
+# Contiene le view dell'applicazione: pagina home, ricerche con filtri
+# per utenti/quiz/partecipazioni e il CRUD sulla tabella Partecipazione.
 from datetime import date
 
 from django.contrib import messages
@@ -7,6 +10,7 @@ from .models import Utente, Quiz, Domanda, Partecipazione
 
 
 def home(request):
+    """Mostra la pagina iniziale con i conteggi complessivi di utenti, quiz, domande e partecipazioni."""
     contesto = {
         "active": "home",
         "n_utenti": Utente.objects.count(),
@@ -18,6 +22,7 @@ def home(request):
 
 
 def ricerca_utenti(request):
+    """Elenca gli utenti applicando in AND i filtri opzionali ricevuti via querystring GET."""
     utenti = Utente.objects.all().order_by("nome_utente")
 
     nome_utente = request.GET.get("nome_utente", "").strip()
@@ -25,6 +30,7 @@ def ricerca_utenti(request):
     cognome = request.GET.get("cognome", "").strip()
     email = request.GET.get("email", "").strip()
 
+    # Applica ogni filtro solo se l'utente ha effettivamente valorizzato il campo.
     if nome_utente:
         utenti = utenti.filter(nome_utente__icontains=nome_utente)
     if nome:
@@ -48,6 +54,7 @@ def ricerca_utenti(request):
 
 
 def ricerca_quiz(request):
+    """Elenca i quiz applicando in AND i filtri opzionali su titolo, creatore e intervallo date."""
     elenco_quiz = Quiz.objects.select_related("creatore").order_by("titolo")
 
     titolo = request.GET.get("titolo", "").strip()
@@ -55,6 +62,7 @@ def ricerca_quiz(request):
     data_da = request.GET.get("data_da", "").strip()
     data_a = request.GET.get("data_a", "").strip()
 
+    # Applica ogni filtro solo se l'utente ha effettivamente valorizzato il campo.
     if titolo:
         elenco_quiz = elenco_quiz.filter(titolo__icontains=titolo)
     if creatore:
@@ -78,6 +86,7 @@ def ricerca_quiz(request):
 
 
 def dettaglio_quiz(request, quiz_id):
+    """Mostra i dettagli di un quiz con le sue domande, le risposte correlate e il numero di partecipazioni."""
     quiz = get_object_or_404(
         Quiz.objects.select_related("creatore"), pk=quiz_id
     )
@@ -93,6 +102,7 @@ def dettaglio_quiz(request, quiz_id):
 
 
 def ricerca_partecipazioni(request):
+    """Elenca le partecipazioni applicando in AND i filtri opzionali su utente, quiz e intervallo date."""
     partecipazioni = Partecipazione.objects.select_related(
         "utente", "quiz"
     ).order_by("-data")
@@ -102,6 +112,7 @@ def ricerca_partecipazioni(request):
     data_da = request.GET.get("data_da", "").strip()
     data_a = request.GET.get("data_a", "").strip()
 
+    # Applica ogni filtro solo se l'utente ha effettivamente valorizzato il campo.
     if utente:
         partecipazioni = partecipazioni.filter(
             utente__nome_utente__icontains=utente
@@ -129,11 +140,15 @@ def ricerca_partecipazioni(request):
 
 
 def valida_partecipazione(utente_id, quiz_id, data_str):
+    """Valida i dati grezzi di una partecipazione (utente, quiz, data) restituendo
+    la lista di errori insieme agli oggetti risolti, cosi da poter essere riusata
+    sia in creazione che in modifica."""
     errori = []
     utente = None
     quiz = None
     data_part = None
 
+    # Verifica che l'utente sia stato selezionato e che esista realmente.
     if not utente_id:
         errori.append("Selezionare un utente.")
     else:
@@ -141,6 +156,7 @@ def valida_partecipazione(utente_id, quiz_id, data_str):
         if utente is None:
             errori.append("L'utente selezionato non esiste.")
 
+    # Verifica che il quiz sia stato selezionato e che esista realmente.
     if not quiz_id:
         errori.append("Selezionare un quiz.")
     else:
@@ -148,6 +164,7 @@ def valida_partecipazione(utente_id, quiz_id, data_str):
         if quiz is None:
             errori.append("Il quiz selezionato non esiste.")
 
+    # Verifica che la data sia presente e in un formato ISO valido.
     if not data_str:
         errori.append("Inserire la data di partecipazione.")
     else:
@@ -156,6 +173,7 @@ def valida_partecipazione(utente_id, quiz_id, data_str):
         except ValueError:
             errori.append("La data inserita non è valida.")
 
+    # Verifica di coerenza incrociata: la data deve rientrare nel periodo di validità del quiz.
     if quiz is not None and data_part is not None:
         if data_part < quiz.data_inizio or data_part > quiz.data_fine:
             errori.append(
@@ -167,6 +185,8 @@ def valida_partecipazione(utente_id, quiz_id, data_str):
 
 
 def crea_partecipazione(request):
+    """Gestisce la creazione di una nuova partecipazione: mostra il form in GET
+    e valida/salva i dati in POST, evitando duplicati utente-quiz-data."""
     utente_id = ""
     quiz_id = ""
     data_str = ""
@@ -180,6 +200,8 @@ def crea_partecipazione(request):
             utente_id, quiz_id, data_str
         )
 
+        # Oltre alla validazione dei campi, verifica che non esista gia
+        # una partecipazione identica (stesso utente, quiz e data).
         if not errori:
             duplicata = Partecipazione.objects.filter(
                 utente=utente, quiz=quiz, data=data_part
@@ -211,6 +233,8 @@ def crea_partecipazione(request):
 
 
 def modifica_partecipazione(request, partecipazione_id):
+    """Gestisce la modifica di una partecipazione esistente: precompila il form in GET
+    e valida/aggiorna i dati in POST, escludendo il record corrente dal controllo duplicati."""
     partecipazione = get_object_or_404(
         Partecipazione.objects.select_related("utente", "quiz"),
         pk=partecipazione_id,
@@ -225,6 +249,8 @@ def modifica_partecipazione(request, partecipazione_id):
             utente_id, quiz_id, data_str
         )
 
+        # Il controllo duplicati esclude il record che si sta modificando,
+        # altrimenti la partecipazione risulterebbe sempre in conflitto con se stessa.
         if not errori:
             duplicata = (
                 Partecipazione.objects.filter(
@@ -251,6 +277,7 @@ def modifica_partecipazione(request, partecipazione_id):
 
         valori = {"utente": utente_id, "quiz": quiz_id, "data": data_str}
     else:
+        # Richiesta GET: precompila il form con i valori attuali della partecipazione.
         valori = {
             "utente": str(partecipazione.utente_id),
             "quiz": str(partecipazione.quiz_id),
@@ -269,6 +296,8 @@ def modifica_partecipazione(request, partecipazione_id):
 
 
 def elimina_partecipazione(request, partecipazione_id):
+    """Gestisce l'eliminazione di una partecipazione: mostra una conferma in GET
+    ed esegue la cancellazione effettiva solo in POST."""
     partecipazione = get_object_or_404(
         Partecipazione.objects.select_related("utente", "quiz"),
         pk=partecipazione_id,

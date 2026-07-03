@@ -1,8 +1,10 @@
+{# Pagina iniziale: presentazione del progetto e riepilogo dei conteggi principali (utenti, quiz, domande, partecipazioni). #}
 {% extends "quiz/base.html" %}
 
 {% block title %}Home{% endblock %}
 
 {% block content %}
+{# Sezione hero con titolo, descrizione, call to action e scheda informativa sul progetto. #}
 <section class="home-hero">
     <div class="home-hero-content">
         <span class="eyebrow">Programmazione Web 2025-2026</span>
@@ -34,6 +36,7 @@
     </aside>
 </section>
 
+{# Riepilogo statistiche: conteggi totali passati dalla view home. #}
 <div class="home-content">
     <div class="home-stats">
         <div class="stat-card">

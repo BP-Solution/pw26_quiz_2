@@ -1,7 +1,11 @@
+# Quiz Online - Progetto #2, gruppo BP Solutions
+# Mappa gli URL dell'app quiz alle relative view: home, ricerche e CRUD partecipazioni.
 from django.urls import path
 
 from . import views
 
+# Elenco delle rotte esposte dall'app, ciascuna associata a un nome
+# usato dai template per generare i link tramite {% url %}.
 urlpatterns = [
     path("", views.home, name="home"),
     path("utenti/", views.ricerca_utenti, name="ricerca_utenti"),

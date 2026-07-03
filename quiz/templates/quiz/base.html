@@ -1,3 +1,4 @@
+{# Layout base del sito: header, menu di navigazione laterale, area contenuti e footer. Ogni pagina lo estende definendo i blocchi title, search_panel e content. #}
 {% load static %}
 <!DOCTYPE html>
 <html lang="it">
@@ -12,12 +13,14 @@
 <body>
 <div class="page-wrapper">
 
+    {# Intestazione con il logo, comune a tutte le pagine. #}
     <header class="site-header">
         <a href="{% url 'home' %}" class="logo">BP <span>Solutions</span></a>
     </header>
 
     <div class="body-layout">
 
+        {# Menu di navigazione laterale: evidenzia la voce attiva tramite la variabile "active". #}
         <nav class="site-nav">
             <div class="nav-section-title">Navigazione</div>
             <a href="{% url 'home' %}" class="{% if active == 'home' %}active{% endif %}">Home</a>
@@ -28,6 +31,7 @@
             <a href="{% url 'ricerca_partecipazioni' %}" class="{% if active == 'partecipazioni' %}active{% endif %}">Partecipazioni</a>
         </nav>
 
+        {# Area principale: pannello di ricerca/filtri (opzionale) e contenuto specifico della pagina. #}
         <div class="main-area">
             {% block search_panel %}{% endblock %}
             <div class="content-area">
@@ -37,6 +41,7 @@
 
     </div>
 
+    {# Piè di pagina comune a tutte le pagine. #}
     <footer class="site-footer">
         Progetto d'esame — Programmazione Web 2025-2026 — Gruppo BP Solutions
     </footer>

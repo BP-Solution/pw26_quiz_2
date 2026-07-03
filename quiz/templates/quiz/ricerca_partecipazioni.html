@@ -1,7 +1,9 @@
+{# Pagina di ricerca partecipazioni: pannello filtri, tabella risultati e accesso alle operazioni CRUD (nuova, modifica, elimina). #}
 {% extends "quiz/base.html" %}
 
 {% block title %}Ricerca Partecipazioni{% endblock %}
 
+{# Pannello di ricerca con i filtri disponibili su utente, quiz e intervallo di date. #}
 {% block search_panel %}
 <div class="search-panel">
     <h1>Ricerca Partecipazioni</h1>
@@ -29,6 +31,7 @@
 {% endblock %}
 
 {% block content %}
+{# Messaggi di esito (successo/errore) provenienti dalle operazioni di creazione, modifica o eliminazione. #}
 {% if messages %}
     {% for message in messages %}
         {% if message.tags == "error" %}
@@ -39,6 +42,7 @@
     {% endfor %}
 {% endif %}
 
+{# Tabella dei risultati della ricerca con le azioni di modifica ed eliminazione per ogni riga. #}
 <div class="results-toolbar">
     <span class="results-count">{{ partecipazioni|length }} partecipazion{{ partecipazioni|length|pluralize:"e,i" }} trovat{{ partecipazioni|length|pluralize:"a,e" }}</span>
     <a href="{% url 'crea_partecipazione' %}" class="btn btn-success">Nuova partecipazione</a>

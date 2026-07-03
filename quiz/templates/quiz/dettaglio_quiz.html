@@ -1,7 +1,9 @@
+{# Pagina di dettaglio di un quiz: informazioni generali e, per ciascuna domanda, l'elenco delle relative risposte. #}
 {% extends "quiz/base.html" %}
 
 {% block title %}{{ quiz.titolo }}{% endblock %}
 
+{# Intestazione con titolo del quiz e link per tornare alla ricerca. #}
 {% block search_panel %}
 <div class="search-panel">
     <div class="panel-header">
@@ -12,6 +14,7 @@
 {% endblock %}
 
 {% block content %}
+{# Riepilogo dei dati anagrafici del quiz. #}
 <div class="detail-section">
     <h2>Informazioni quiz</h2>
     <div class="detail-grid">
@@ -38,6 +41,7 @@
     </div>
 </div>
 
+{# Una tabella di risposte per ogni domanda del quiz. #}
 {% for domanda in domande %}
 <div class="table-block">
     <div class="section-title">Domanda {{ domanda.numero }} — {{ domanda.testo }}</div>

@@ -1,7 +1,9 @@
+{# Pagina di ricerca quiz: pannello filtri e tabella dei quiz corrispondenti, con link al dettaglio. #}
 {% extends "quiz/base.html" %}
 
 {% block title %}Ricerca Quiz{% endblock %}
 
+{# Pannello di ricerca con i filtri disponibili su titolo, creatore e intervallo di date. #}
 {% block search_panel %}
 <div class="search-panel">
     <h1>Ricerca Quiz</h1>
@@ -29,6 +31,7 @@
 {% endblock %}
 
 {% block content %}
+{# Tabella dei risultati della ricerca, con messaggio alternativo se non ci sono corrispondenze. #}
 <div class="results-toolbar">
     <span class="results-count">{{ elenco_quiz|length }} quiz trovat{{ elenco_quiz|length|pluralize:"o,i" }}</span>
 </div>

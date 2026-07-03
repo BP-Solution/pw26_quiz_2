@@ -1,7 +1,9 @@
+{# Pagina di ricerca utenti: pannello filtri e tabella dei risultati corrispondenti. #}
 {% extends "quiz/base.html" %}
 
 {% block title %}Ricerca Utenti{% endblock %}
 
+{# Pannello di ricerca con i filtri disponibili su nome utente, nome, cognome ed email. #}
 {% block search_panel %}
 <div class="search-panel">
     <h1>Ricerca Utenti</h1>
@@ -29,6 +31,7 @@
 {% endblock %}
 
 {% block content %}
+{# Tabella dei risultati della ricerca, con messaggio alternativo se non ci sono corrispondenze. #}
 <div class="results-toolbar">
     <span class="results-count">{{ utenti|length }} utent{{ utenti|length|pluralize:"e,i" }} trovat{{ utenti|length|pluralize:"o,i" }}</span>
 </div>

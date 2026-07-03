@@ -1,7 +1,9 @@
+{# Form condiviso per la creazione e la modifica di una partecipazione (titolo e URL di annullamento variano in base al contesto). #}
 {% extends "quiz/base.html" %}
 
 {% block title %}{{ titolo_pagina }}{% endblock %}
 
+{# Intestazione con titolo dinamico e link per tornare all'elenco partecipazioni. #}
 {% block search_panel %}
 <div class="search-panel">
     <div class="panel-header">
@@ -12,6 +14,7 @@
 {% endblock %}
 
 {% block content %}
+{# Messaggi di errore di validazione o di conferma restituiti dalla view. #}
 {% if messages %}
     {% for message in messages %}
         {% if message.tags == "error" %}
@@ -22,6 +25,7 @@
     {% endfor %}
 {% endif %}
 
+{# Form con selezione utente, selezione quiz e data della partecipazione. #}
 <div class="crud-card">
     <h2>{{ titolo_pagina }}</h2>
     <form method="post" class="crud-form">

@@ -1,3 +1,6 @@
+# Quiz Online - Progetto #2, gruppo BP Solutions
+# Comando di management "genera_seed": popola il database con dati sintetici
+# (utenti, quiz, domande, risposte, partecipazioni) per demo e test manuali.
 import random
 from datetime import date, timedelta
 from decimal import Decimal
@@ -26,6 +29,7 @@ MIN_PART        = 3   # partecipazioni minime per utente
 MAX_PART        = 8   # partecipazioni massime per utente
 # ────────────────────────────────────────────────────────────
 
+# Pool di nomi e cognomi usati per generare gli utenti sintetici.
 nomi    = ["Marco","Luca","Sara","Giulia","Andrea","Matteo","Anna","Chiara",
            "Paolo","Elena","Davide","Francesca","Simone","Laura","Roberto",
            "Valentina","Stefano","Alice","Giorgio","Marta","Nicola","Beatrice",
@@ -36,12 +40,14 @@ cognomi = ["Rossi","Bianchi","Verdi","Ferrari","Esposito","Romano","Colombo",
            "Giordano","Rizzo","Lombardi","Moretti","Barbieri","Fontana","Santoro",
            "Mariani","Rinaldi","Caruso","Ferrara","Gallo","Hart","Martini","Leone"]
 
+# Temi usati per comporre i titoli dei quiz generati.
 temi_quiz = ["SQL Base","Python Avanzato","Reti di Calcolatori","Algoritmi",
              "Basi di Dati","Programmazione Web","Sistemi Operativi","Java OOP",
              "Matematica Discreta","Sicurezza Informatica","HTML e CSS","JavaScript",
              "PHP e MySQL","Linux","Cloud Computing","Machine Learning","UML",
              "Architettura dei Computer","Ingegneria del Software","React"]
 
+# Testi delle domande realistiche assegnate ai quiz, a rotazione.
 testi_domande = [
     "Cosa si intende per chiave primaria?",
     "Qual è la differenza tra DELETE e TRUNCATE?",
@@ -75,6 +81,8 @@ testi_domande = [
     "Cosa è una Promise in JavaScript?",
 ]
 
+# Banca di risposte corrette/sbagliate specifiche per ciascuna domanda nota,
+# usata da scegli_risposte per generare contenuti coerenti col testo della domanda.
 risposte_per_domanda = {
     "Cosa si intende per chiave primaria?": {
         "Corretta": [
@@ -528,6 +536,8 @@ risposte_per_domanda = {
     },
 }
 
+# Risposte generiche di fallback, usate quando una domanda non ha una voce
+# dedicata in risposte_per_domanda.
 risposte_generiche = {
     "Corretta": [
         "Una definizione corretta del concetto richiesto",
@@ -546,11 +556,15 @@ risposte_generiche = {
 
 
 def data_casuale(inizio, fine):
+    """Restituisce una data casuale compresa nell'intervallo [inizio, fine]."""
     delta = (fine - inizio).days
     return inizio + timedelta(days=random.randint(0, delta))
 
 
 def scegli_risposte(testo_domanda, tipo, quantita):
+    """Seleziona un numero di risposte del tipo richiesto (Corretta/Sbagliata) per la
+    domanda indicata, pescando dal pool specifico o da quello generico se assente;
+    usa il campionamento senza ripetizioni quando possibile, altrimenti con ripetizioni."""
     pool = risposte_per_domanda.get(testo_domanda, risposte_generiche)[tipo]
     if quantita <= len(pool):
         return random.sample(pool, quantita)
@@ -559,10 +573,16 @@ def scegli_risposte(testo_domanda, tipo, quantita):
 
 
 class Command(BaseCommand):
+    """Comando 'genera_seed': ripopola da zero il database con un dataset
+    sintetico coerente di utenti, quiz, domande, risposte e partecipazioni."""
     help = "Popola il database con dati sintetici per il sistema di quiz."
 
     @transaction.atomic
     def handle(self, *args, **options):
+        """Esegue il seed in un'unica transazione: svuota le tabelle esistenti
+        e ricrea in sequenza utenti, quiz, domande/risposte e partecipazioni."""
+        # Fase 1: pulizia completa dei dati esistenti, rispettando l'ordine
+        # delle dipendenze per evitare violazioni dei vincoli di integrita.
         self.stdout.write("Pulizia dati esistenti...")
         RispostaUtenteQuiz.objects.all().delete()
         Partecipazione.objects.all().delete()
@@ -571,6 +591,7 @@ class Command(BaseCommand):
         Quiz.objects.all().delete()
         Utente.objects.all().delete()
 
+        # Fase 2: creazione degli utenti, con username univoco derivato da nome e cognome.
         self.stdout.write("Creazione utenti...")
         utenti = []
         used_usernames = set()
@@ -592,6 +613,8 @@ class Command(BaseCommand):
             )
             utenti.append(utente)
 
+        # Fase 3: creazione dei quiz, ciascuno assegnato a un creatore casuale
+        # e con un periodo di validita generato casualmente.
         self.stdout.write("Creazione quiz...")
         quiz_objs = []
         for i in range(1, N_QUIZ + 1):
@@ -607,6 +630,8 @@ class Command(BaseCommand):
             )
             quiz_objs.append(quiz)
 
+        # Fase 4: per ogni quiz genera un numero variabile di domande, assegnando
+        # i testi a rotazione da un pool mescolato per varieta tra i quiz.
         self.stdout.write("Creazione domande e risposte...")
         domande_per_quiz = {}
         testi_pool = testi_domande.copy()
@@ -626,6 +651,8 @@ class Command(BaseCommand):
                     testo=testo_dom,
                 )
 
+                # Determina quante risposte corrette e sbagliate generare per la
+                # domanda e ne mescola l'ordine di presentazione.
                 n_risp = random.randint(MIN_RISPOSTE, MAX_RISPOSTE)
                 n_corrette = random.randint(1, max(1, n_risp - 1))
                 tipi = ["Corretta"] * n_corrette + ["Sbagliata"] * (n_risp - n_corrette)
@@ -656,6 +683,8 @@ class Command(BaseCommand):
 
                 domande_per_quiz[quiz.id].append((domanda, risposte_obj))
 
+        # Fase 5: per ogni utente crea un numero variabile di partecipazioni a quiz
+        # scelti casualmente, generando anche una risposta data per ogni domanda del quiz.
         self.stdout.write("Creazione partecipazioni e risposte utente...")
         for utente in utenti:
             n_part = random.randint(MIN_PART, MAX_PART)
