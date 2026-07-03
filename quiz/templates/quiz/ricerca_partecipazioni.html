@@ -29,8 +29,19 @@
 {% endblock %}
 
 {% block content %}
+{% if messages %}
+    {% for message in messages %}
+        {% if message.tags == "error" %}
+        <div class="msg-error">{{ message }}</div>
+        {% else %}
+        <div class="msg-success">{{ message }}</div>
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
 <div class="results-toolbar">
     <span class="results-count">{{ partecipazioni|length }} partecipazion{{ partecipazioni|length|pluralize:"e,i" }} trovat{{ partecipazioni|length|pluralize:"a,e" }}</span>
+    <a href="{% url 'crea_partecipazione' %}" class="btn btn-success">Nuova partecipazione</a>
 </div>
 
 {% if partecipazioni %}
@@ -41,6 +52,7 @@
                 <th>Utente</th>
                 <th>Quiz</th>
                 <th>Data</th>
+                <th>Azioni</th>
             </tr>
         </thead>
         <tbody>
@@ -49,6 +61,10 @@
                 <td>{{ partecipazione.utente.nome_utente }}</td>
                 <td><a href="{% url 'dettaglio_quiz' partecipazione.quiz.id %}" class="table-link">{{ partecipazione.quiz.titolo }}</a></td>
                 <td>{{ partecipazione.data|date:"d/m/Y" }}</td>
+                <td class="actions-cell">
+                    <a href="{% url 'modifica_partecipazione' partecipazione.id %}" class="btn btn-secondary btn-sm">Modifica</a>
+                    <a href="{% url 'elimina_partecipazione' partecipazione.id %}" class="btn btn-danger btn-sm">Elimina</a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>

@@ -1,4 +1,7 @@
-from django.shortcuts import render, get_object_or_404
+from datetime import date
+
+from django.contrib import messages
+from django.shortcuts import render, get_object_or_404, redirect
 
 from .models import Utente, Quiz, Domanda, Partecipazione
 
@@ -123,3 +126,161 @@ def ricerca_partecipazioni(request):
         },
     }
     return render(request, "quiz/ricerca_partecipazioni.html", contesto)
+
+
+def valida_partecipazione(utente_id, quiz_id, data_str):
+    errori = []
+    utente = None
+    quiz = None
+    data_part = None
+
+    if not utente_id:
+        errori.append("Selezionare un utente.")
+    else:
+        utente = Utente.objects.filter(pk=utente_id).first()
+        if utente is None:
+            errori.append("L'utente selezionato non esiste.")
+
+    if not quiz_id:
+        errori.append("Selezionare un quiz.")
+    else:
+        quiz = Quiz.objects.filter(pk=quiz_id).first()
+        if quiz is None:
+            errori.append("Il quiz selezionato non esiste.")
+
+    if not data_str:
+        errori.append("Inserire la data di partecipazione.")
+    else:
+        try:
+            data_part = date.fromisoformat(data_str)
+        except ValueError:
+            errori.append("La data inserita non è valida.")
+
+    if quiz is not None and data_part is not None:
+        if data_part < quiz.data_inizio or data_part > quiz.data_fine:
+            errori.append(
+                f"La data deve essere compresa nel periodo di validità del quiz "
+                f"({quiz.data_inizio.strftime('%d/%m/%Y')} – {quiz.data_fine.strftime('%d/%m/%Y')})."
+            )
+
+    return errori, utente, quiz, data_part
+
+
+def crea_partecipazione(request):
+    utente_id = ""
+    quiz_id = ""
+    data_str = ""
+
+    if request.method == "POST":
+        utente_id = request.POST.get("utente", "").strip()
+        quiz_id = request.POST.get("quiz", "").strip()
+        data_str = request.POST.get("data", "").strip()
+
+        errori, utente, quiz, data_part = valida_partecipazione(
+            utente_id, quiz_id, data_str
+        )
+
+        if not errori:
+            duplicata = Partecipazione.objects.filter(
+                utente=utente, quiz=quiz, data=data_part
+            ).exists()
+            if duplicata:
+                errori.append(
+                    "Esiste già una partecipazione di questo utente a questo quiz in questa data."
+                )
+
+        if not errori:
+            Partecipazione.objects.create(
+                utente=utente, quiz=quiz, data=data_part
+            )
+            messages.success(request, "Partecipazione creata correttamente.")
+            return redirect("ricerca_partecipazioni")
+
+        for errore in errori:
+            messages.error(request, errore)
+
+    contesto = {
+        "active": "partecipazioni",
+        "titolo_pagina": "Nuova partecipazione",
+        "utenti": Utente.objects.order_by("nome_utente"),
+        "elenco_quiz": Quiz.objects.order_by("titolo"),
+        "valori": {"utente": utente_id, "quiz": quiz_id, "data": data_str},
+        "url_annulla": "ricerca_partecipazioni",
+    }
+    return render(request, "quiz/form_partecipazione.html", contesto)
+
+
+def modifica_partecipazione(request, partecipazione_id):
+    partecipazione = get_object_or_404(
+        Partecipazione.objects.select_related("utente", "quiz"),
+        pk=partecipazione_id,
+    )
+
+    if request.method == "POST":
+        utente_id = request.POST.get("utente", "").strip()
+        quiz_id = request.POST.get("quiz", "").strip()
+        data_str = request.POST.get("data", "").strip()
+
+        errori, utente, quiz, data_part = valida_partecipazione(
+            utente_id, quiz_id, data_str
+        )
+
+        if not errori:
+            duplicata = (
+                Partecipazione.objects.filter(
+                    utente=utente, quiz=quiz, data=data_part
+                )
+                .exclude(pk=partecipazione.pk)
+                .exists()
+            )
+            if duplicata:
+                errori.append(
+                    "Esiste già una partecipazione di questo utente a questo quiz in questa data."
+                )
+
+        if not errori:
+            partecipazione.utente = utente
+            partecipazione.quiz = quiz
+            partecipazione.data = data_part
+            partecipazione.save()
+            messages.success(request, "Partecipazione modificata correttamente.")
+            return redirect("ricerca_partecipazioni")
+
+        for errore in errori:
+            messages.error(request, errore)
+
+        valori = {"utente": utente_id, "quiz": quiz_id, "data": data_str}
+    else:
+        valori = {
+            "utente": str(partecipazione.utente_id),
+            "quiz": str(partecipazione.quiz_id),
+            "data": partecipazione.data.isoformat(),
+        }
+
+    contesto = {
+        "active": "partecipazioni",
+        "titolo_pagina": "Modifica partecipazione",
+        "utenti": Utente.objects.order_by("nome_utente"),
+        "elenco_quiz": Quiz.objects.order_by("titolo"),
+        "valori": valori,
+        "url_annulla": "ricerca_partecipazioni",
+    }
+    return render(request, "quiz/form_partecipazione.html", contesto)
+
+
+def elimina_partecipazione(request, partecipazione_id):
+    partecipazione = get_object_or_404(
+        Partecipazione.objects.select_related("utente", "quiz"),
+        pk=partecipazione_id,
+    )
+
+    if request.method == "POST":
+        partecipazione.delete()
+        messages.success(request, "Partecipazione eliminata correttamente.")
+        return redirect("ricerca_partecipazioni")
+
+    contesto = {
+        "active": "partecipazioni",
+        "partecipazione": partecipazione,
+    }
+    return render(request, "quiz/elimina_partecipazione.html", contesto)

@@ -1,0 +1,45 @@
+{% extends "quiz/base.html" %}
+
+{% block title %}Elimina partecipazione{% endblock %}
+
+{% block search_panel %}
+<div class="search-panel">
+    <div class="panel-header">
+        <h1>Elimina partecipazione</h1>
+        <a href="{% url 'ricerca_partecipazioni' %}" class="btn btn-secondary btn-sm">Torna alle partecipazioni</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="crud-card">
+    <h2>Confermare l'eliminazione?</h2>
+
+    <div class="detail-grid" style="margin-bottom: 24px;">
+        <div class="detail-field">
+            <label>Utente</label>
+            <span>{{ partecipazione.utente.nome_utente }}</span>
+        </div>
+        <div class="detail-field">
+            <label>Quiz</label>
+            <span>{{ partecipazione.quiz.titolo }}</span>
+        </div>
+        <div class="detail-field">
+            <label>Data</label>
+            <span>{{ partecipazione.data|date:"d/m/Y" }}</span>
+        </div>
+    </div>
+
+    <div class="msg-empty" style="margin-bottom: 24px;">
+        Attenzione: eliminando la partecipazione verranno eliminate anche tutte le risposte date dall'utente in questa partecipazione. L'operazione non è reversibile.
+    </div>
+
+    <form method="post" class="crud-form">
+        {% csrf_token %}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-danger">Elimina definitivamente</button>
+            <a href="{% url 'ricerca_partecipazioni' %}" class="btn btn-secondary">Annulla</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
