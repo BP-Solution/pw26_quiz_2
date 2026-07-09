@@ -7,6 +7,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Avg, Count, DecimalField, Min, Max, OuterRef, Prefetch, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import render, get_object_or_404, redirect
@@ -555,11 +556,17 @@ def dettaglio_partecipazione(request, partecipazione_id):
         pk=partecipazione_id,
     )
     risposte_date = partecipazione.risposte_date.all()
+    # Punteggio totale calcolato in Python sulle risposte gia recuperate dal prefetch,
+    # senza eseguire query aggiuntive (le risposte senza punteggio valgono 0).
+    punteggio_totale = sum(
+        (risposta_data.risposta.punteggio or Decimal("0")) for risposta_data in risposte_date
+    )
 
     contesto = {
         "active": "partecipazioni",
         "partecipazione": partecipazione,
         "risposte_date": risposte_date,
+        "punteggio_totale": punteggio_totale,
         "back_url": url_ritorno_sicuro(request, "ricerca_partecipazioni"),
     }
     return render(request, "quiz/dettaglio_partecipazione.html", contesto)
@@ -642,14 +649,61 @@ def valida_partecipazione(nome_utente, titolo_quiz, data_str):
     return errori, utente, quiz, data_part
 
 
+def costruisci_domande_risposta(quiz):
+    """Prepara, per ciascuna domanda del quiz, l'elenco delle opzioni di risposta da
+    proporre nella maschera di partecipazione (senza rivelare quale sia corretta).
+    Ogni opzione porta con se un flag "selezionata", usato per ripresentare le
+    scelte gia fatte quando il form viene ripetuto a causa di un errore."""
+    domande = quiz.domande.prefetch_related(
+        Prefetch("risposte", queryset=Risposta.objects.order_by("numero"))
+    ).order_by("numero", "id")
+
+    domande_risposta = []
+    for domanda in domande:
+        opzioni = [
+            {"risposta": risposta, "selezionata": False}
+            for risposta in domanda.risposte.all()
+        ]
+        domande_risposta.append({"domanda": domanda, "opzioni": opzioni})
+    return domande_risposta
+
+
+def form_scelta_partecipazione(request, back_url, utente_input="", quiz_input="", data_str=""):
+    """Prepara il contesto e la risposta per la prima fase (scelta di utente, quiz
+    e data): factorizzata perche riusata sia dalla richiesta GET iniziale sia dai
+    percorsi di errore della seconda fase."""
+    contesto = {
+        "active": "partecipazioni",
+        "titolo_pagina": "Nuova partecipazione",
+        "modalita_modifica": False,
+        "utenti": Utente.objects.order_by("nome_utente"),
+        # Solo i quiz con almeno una domanda possono ricevere partecipazioni.
+        "elenco_quiz": (
+            Quiz.objects.annotate(n_domande=Count("domande"))
+            .filter(n_domande__gt=0)
+            .order_by("titolo")
+        ),
+        "valori": {"utente": utente_input, "quiz": quiz_input, "data": data_str},
+        "url_annulla": "ricerca_partecipazioni",
+        "back_url": back_url,
+    }
+    return render(request, "quiz/form_partecipazione.html", contesto)
+
+
 def crea_partecipazione(request):
-    """Gestisce la creazione di una nuova partecipazione: mostra il form in GET
-    e valida/salva i dati in POST, evitando duplicati utente-quiz-data. Utente e
-    quiz si digitano come testo con autocompletamento (username e titolo)."""
+    """Gestisce la creazione di una nuova partecipazione in due fasi: prima si
+    scelgono utente, quiz e data (fase "scelta", il form classico con
+    autocompletamento), poi si risponde davvero a tutte le domande del quiz scelto
+    (fase "risposte"); solo a quel punto partecipazione e risposte vengono salvate
+    insieme in un'unica transazione."""
+    back_url = url_ritorno_sicuro(request, "ricerca_partecipazioni")
+
+    if request.method == "POST" and request.POST.get("fase") == "risposte":
+        return salva_partecipazione_con_risposte(request, back_url)
+
     utente_input = ""
     quiz_input = ""
     data_str = ""
-    back_url = url_ritorno_sicuro(request, "ricerca_partecipazioni")
 
     if request.method == "POST":
         utente_input = request.POST.get("utente", "").strip()
@@ -672,34 +726,105 @@ def crea_partecipazione(request):
                 )
 
         if not errori:
-            partecipazione = Partecipazione(utente=utente, quiz=quiz, data=data_part)
-            try:
-                partecipazione.save()
-            except ValidationError as eccezione:
-                aggiungi_errori_validazione(errori, eccezione)
-            else:
-                messages.success(request, "Partecipazione creata correttamente.")
-                return redirect(back_url)
+            # Utente, quiz e data sono validi: si passa alla fase di risposta alle
+            # domande, senza ancora salvare nulla nel database.
+            contesto = {
+                "active": "partecipazioni",
+                "titolo_pagina": "Rispondi al quiz",
+                "utente": utente,
+                "quiz": quiz,
+                "data_part": data_part,
+                "valori": {"utente": utente_input, "quiz": quiz_input, "data": data_str},
+                "domande": costruisci_domande_risposta(quiz),
+                "back_url": back_url,
+            }
+            return render(request, "quiz/rispondi_partecipazione.html", contesto)
 
         for errore in errori:
             messages.error(request, errore)
 
+    return form_scelta_partecipazione(request, back_url, utente_input, quiz_input, data_str)
+
+
+def salva_partecipazione_con_risposte(request, back_url):
+    """Fase finale della creazione partecipazione: rivalida utente, quiz e data (per
+    sicurezza, anche se gia validati nella prima fase) e le risposte scelte per
+    ciascuna domanda del quiz, poi salva partecipazione e risposte in un'unica
+    transazione, cosi da non lasciare mai una partecipazione senza risposte a meta."""
+    utente_input = request.POST.get("utente", "").strip()
+    quiz_input = request.POST.get("quiz", "").strip()
+    data_str = request.POST.get("data", "").strip()
+
+    errori, utente, quiz, data_part = valida_partecipazione(
+        utente_input, quiz_input, data_str
+    )
+
+    if not errori:
+        duplicata = Partecipazione.objects.filter(
+            utente=utente, quiz=quiz, data=data_part
+        ).exists()
+        if duplicata:
+            errori.append(
+                "Esiste già una partecipazione di questo utente a questo quiz in questa data."
+            )
+
+    if errori:
+        # Utente, quiz o data non sono (piu) validi: si torna alla prima fase,
+        # mostrando gli errori raccolti.
+        for errore in errori:
+            messages.error(request, errore)
+        return form_scelta_partecipazione(request, back_url, utente_input, quiz_input, data_str)
+
+    # Verifica che sia stata scelta una risposta valida per ciascuna domanda del quiz,
+    # tenendo traccia delle selezioni per poterle ripresentare in caso di errore.
+    domande_risposta = costruisci_domande_risposta(quiz)
+    errori_risposte = []
+    risposte_valide = {}
+    for voce in domande_risposta:
+        domanda = voce["domanda"]
+        valore_scelto = request.POST.get(f"risposta_domanda_{domanda.id}", "").strip()
+        risposta_scelta = None
+        for opzione in voce["opzioni"]:
+            opzione["selezionata"] = str(opzione["risposta"].id) == valore_scelto
+            if opzione["selezionata"]:
+                risposta_scelta = opzione["risposta"]
+        if risposta_scelta is None:
+            errori_risposte.append(f"Selezionare una risposta per la domanda {domanda.numero}.")
+        else:
+            risposte_valide[domanda.id] = risposta_scelta
+
+    if not errori_risposte:
+        try:
+            with transaction.atomic():
+                partecipazione = Partecipazione(utente=utente, quiz=quiz, data=data_part)
+                partecipazione.save()
+                for voce in domande_risposta:
+                    domanda = voce["domanda"]
+                    RispostaUtenteQuiz.objects.create(
+                        partecipazione=partecipazione,
+                        domanda=domanda,
+                        risposta=risposte_valide[domanda.id],
+                    )
+        except ValidationError as eccezione:
+            aggiungi_errori_validazione(errori_risposte, eccezione)
+        else:
+            messages.success(request, "Partecipazione registrata correttamente con le risposte date.")
+            return redirect(back_url)
+
+    for errore in errori_risposte:
+        messages.error(request, errore)
+
     contesto = {
         "active": "partecipazioni",
-        "titolo_pagina": "Nuova partecipazione",
-        "modalita_modifica": False,
-        "utenti": Utente.objects.order_by("nome_utente"),
-        # Solo i quiz con almeno una domanda possono ricevere partecipazioni.
-        "elenco_quiz": (
-            Quiz.objects.annotate(n_domande=Count("domande"))
-            .filter(n_domande__gt=0)
-            .order_by("titolo")
-        ),
+        "titolo_pagina": "Rispondi al quiz",
+        "utente": utente,
+        "quiz": quiz,
+        "data_part": data_part,
         "valori": {"utente": utente_input, "quiz": quiz_input, "data": data_str},
-        "url_annulla": "ricerca_partecipazioni",
+        "domande": domande_risposta,
         "back_url": back_url,
     }
-    return render(request, "quiz/form_partecipazione.html", contesto)
+    return render(request, "quiz/rispondi_partecipazione.html", contesto)
 
 
 def modifica_partecipazione(request, partecipazione_id):

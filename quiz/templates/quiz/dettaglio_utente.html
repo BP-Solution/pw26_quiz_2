@@ -59,7 +59,7 @@
             <tbody>
                 {% for quiz in quiz_creati %}
                 <tr>
-                    <td><a href="{% url 'dettaglio_quiz' quiz.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ quiz.titolo }}</a></td>
+                    <td><a href="{% url 'dettaglio_quiz' quiz.id %}?next={{ request.get_full_path|urlencode }}" class="table-link stretched-link">{{ quiz.titolo }}</a></td>
                     <td class="text-end">{{ quiz.n_domande }}</td>
                     <td class="text-end">{{ quiz.n_partecipazioni }}</td>
                     <td class="actions-cell">
@@ -91,7 +91,7 @@
                 {% for partecipazione in partecipazioni %}
                 <tr>
                     <td><a href="{% url 'dettaglio_quiz' partecipazione.quiz.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ partecipazione.quiz.titolo }}</a></td>
-                    <td class="text-end">{{ partecipazione.data|date:"d/m/Y" }}</td>
+                    <td class="text-end"><a href="{% url 'dettaglio_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="table-link stretched-link">{{ partecipazione.data|date:"d/m/Y" }}</a></td>
                     <td class="actions-cell">
                         <a href="{% url 'dettaglio_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm">Dettaglio</a>
                     </td>

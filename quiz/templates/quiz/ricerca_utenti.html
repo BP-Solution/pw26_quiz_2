@@ -84,7 +84,7 @@
         <tbody>
             {% for utente in utenti %}
             <tr>
-                <td>{{ utente.nome_utente }}</td>
+                <td><a href="{% url 'dettaglio_utente' utente.id %}?next={{ request.get_full_path|urlencode }}" class="table-link stretched-link">{{ utente.nome_utente }}</a></td>
                 <td>{{ utente.nome }}</td>
                 <td>{{ utente.cognome }}</td>
                 <td>{{ utente.email }}</td>

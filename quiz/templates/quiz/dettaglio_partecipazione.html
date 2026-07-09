@@ -36,6 +36,10 @@
             <label>Risposte date</label>
             <span>{{ risposte_date|length }}</span>
         </div>
+        <div class="detail-field">
+            <label>Punteggio totale</label>
+            <span>{% if risposte_date %}{{ punteggio_totale|floatformat:1 }}{% else %}—{% endif %}</span>
+        </div>
     </div>
     <div class="detail-actions">
         <a href="{% url 'modifica_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary"><i class="bi bi-pencil" aria-hidden="true"></i> Modifica</a>

@@ -123,7 +123,7 @@
         <tbody>
             {% for quiz in elenco_quiz %}
             <tr>
-                <td><a href="{% url 'dettaglio_quiz' quiz.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ quiz.titolo }}</a></td>
+                <td><a href="{% url 'dettaglio_quiz' quiz.id %}?next={{ request.get_full_path|urlencode }}" class="table-link stretched-link">{{ quiz.titolo }}</a></td>
                 <td><a href="{% url 'dettaglio_utente' quiz.creatore.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ quiz.creatore.nome_utente }}</a></td>
                 <td class="text-end">{{ quiz.data_inizio|date:"d/m/Y" }}</td>
                 <td class="text-end">{{ quiz.data_fine|date:"d/m/Y" }}</td>

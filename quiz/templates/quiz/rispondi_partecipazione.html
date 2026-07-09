@@ -1,0 +1,72 @@
+{# Seconda fase della creazione partecipazione: utente, quiz e data sono gia stati scelti e validati nella prima fase; qui si risponde davvero a ogni domanda del quiz prima di salvare. #}
+{% extends "quiz/base.html" %}
+
+{% block title %}Rispondi al quiz{% endblock %}
+
+{# Intestazione con titolo della fase e link per tornare all'elenco partecipazioni. #}
+{% block search_panel %}
+<div class="search-panel">
+    <div class="panel-header">
+        <h1>Rispondi al quiz</h1>
+        <a href="{{ back_url }}" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left" aria-hidden="true"></i> Torna indietro</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{# Messaggi di errore di validazione (es. domanda senza risposta) o di conferma. #}
+{% if messages %}
+    {% for message in messages %}
+        {% if message.tags == "error" %}
+        <div class="alert alert-danger" role="alert">{{ message }}</div>
+        {% else %}
+        <div class="alert alert-success" role="alert">{{ message }}</div>
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+<div class="crud-card crud-card-wide">
+    <h2>{{ quiz.titolo }}</h2>
+
+    {# Riepilogo di utente e data: non piu modificabili in questa fase. #}
+    <div class="detail-grid quiz-answer-summary">
+        <div class="detail-field">
+            <label>Utente</label>
+            <span>{{ utente.nome_utente }} ({{ utente.nome }} {{ utente.cognome }})</span>
+        </div>
+        <div class="detail-field">
+            <label>Data partecipazione</label>
+            <span>{{ data_part|date:"d/m/Y" }}</span>
+        </div>
+    </div>
+
+    {# Una domanda per blocco, con le sue possibili risposte come scelta singola: le risposte non indicano quale sia corretta, esattamente come in un vero quiz. #}
+    <form method="post" class="crud-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ back_url }}">
+        <input type="hidden" name="fase" value="risposte">
+        <input type="hidden" name="utente" value="{{ valori.utente }}">
+        <input type="hidden" name="quiz" value="{{ valori.quiz }}">
+        <input type="hidden" name="data" value="{{ valori.data }}">
+
+        {% for voce in domande %}
+        <fieldset class="question-block">
+            <legend>Domanda {{ voce.domanda.numero }} — {{ voce.domanda.testo }}</legend>
+            <div class="option-list">
+                {% for opzione in voce.opzioni %}
+                <label class="option-item">
+                    <input type="radio" name="risposta_domanda_{{ voce.domanda.id }}" value="{{ opzione.risposta.id }}" {% if opzione.selezionata %}checked{% endif %}>
+                    {{ opzione.risposta.testo }}
+                </label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        {% endfor %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save" aria-hidden="true"></i> Salva risposte</button>
+            <a href="{{ back_url }}" class="btn btn-secondary"><i class="bi bi-x-lg" aria-hidden="true"></i> Annulla</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

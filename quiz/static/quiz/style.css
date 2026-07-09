@@ -416,6 +416,30 @@ a:hover { text-decoration: underline; color: var(--beige-deeper); }
     border-bottom-style: solid;
 }
 
+/* Riga di tabella interamente cliccabile verso il dettaglio: lo pseudo-elemento
+   ::after del link con classe "stretched-link" copre tutta la riga (position
+   relative sulla tr), mentre gli altri link/pulsanti della riga restano sopra
+   grazie allo z-index maggiore e continuano a puntare al loro target originale. */
+.data-table tbody tr {
+    position: relative;
+}
+
+.data-table tbody tr:has(.stretched-link) {
+    cursor: pointer;
+}
+
+.data-table .stretched-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.data-table td > a:not(.stretched-link) {
+    position: relative;
+    z-index: 2;
+}
+
 .sort-link {
     color: var(--brown-text);
     display: inline-flex;
@@ -608,6 +632,65 @@ a:hover { text-decoration: underline; color: var(--beige-deeper); }
     display: flex;
     gap: 12px;
     margin-top: 24px;
+}
+
+/* Variante piu larga della crud-card, usata dalla maschera di risposta al quiz
+   che deve ospitare piu domande e risposte senza risultare troppo compressa. */
+.crud-card-wide {
+    max-width: 820px;
+}
+
+.quiz-answer-summary {
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 2px solid var(--beige-mid);
+}
+
+/* Blocco di una singola domanda nella maschera di risposta al quiz. */
+.question-block {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px 16px;
+    margin-bottom: 16px;
+    background: #fbf8f3;
+}
+
+.question-block legend {
+    padding: 0 6px;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--brown-text);
+}
+
+.option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.option-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--white);
+    cursor: pointer;
+    font-size: 0.92rem;
+    color: var(--brown-text);
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.option-item:hover {
+    background: var(--beige-light);
+    border-color: var(--beige-deeper);
+}
+
+.option-item input[type="radio"] {
+    accent-color: var(--brown-text);
 }
 
 .delete-summary {

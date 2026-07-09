@@ -166,3 +166,95 @@ class PartecipazioneValidationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, f'href="{reverse("ricerca_partecipazioni")}"')
         self.assertNotContains(response, "https://example.com/phishing")
+
+
+class CreazionePartecipazioneRisposteTests(TestCase):
+    """Verifica il flusso in due fasi di creazione partecipazione: scelta di
+    utente/quiz/data e successiva risposta a tutte le domande del quiz."""
+
+    def setUp(self):
+        oggi = timezone.localdate()
+        self.utente = Utente.objects.create(
+            nome_utente="lverdi",
+            nome="Luca",
+            cognome="Verdi",
+            email="luca.verdi@example.com",
+        )
+        self.quiz = Quiz.objects.create(
+            creatore=self.utente,
+            titolo="Quiz con due domande",
+            data_inizio=oggi - timedelta(days=5),
+            data_fine=oggi + timedelta(days=5),
+        )
+        self.domanda1 = Domanda.objects.create(quiz=self.quiz, numero=1, testo="Prima domanda")
+        self.risposta1_corretta = Risposta.objects.create(
+            domanda=self.domanda1, numero=1, testo="Risposta corretta 1",
+            tipo=Risposta.CORRETTA, punteggio=1,
+        )
+        Risposta.objects.create(
+            domanda=self.domanda1, numero=2, testo="Risposta sbagliata 1",
+            tipo=Risposta.SBAGLIATA,
+        )
+        self.domanda2 = Domanda.objects.create(quiz=self.quiz, numero=2, testo="Seconda domanda")
+        self.risposta2_corretta = Risposta.objects.create(
+            domanda=self.domanda2, numero=1, testo="Risposta corretta 2",
+            tipo=Risposta.CORRETTA, punteggio=2,
+        )
+
+    def test_scelta_valida_mostra_la_pagina_di_risposta_con_le_domande(self):
+        response = self.client.post(
+            reverse("crea_partecipazione"),
+            {
+                "utente": self.utente.nome_utente,
+                "quiz": self.quiz.titolo,
+                "data": timezone.localdate().isoformat(),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Rispondi al quiz")
+        self.assertContains(response, "Prima domanda")
+        self.assertContains(response, "Seconda domanda")
+        self.assertContains(response, f'name="risposta_domanda_{self.domanda1.id}"')
+
+    def test_risposte_complete_creano_partecipazione_e_risposte(self):
+        response = self.client.post(
+            reverse("crea_partecipazione"),
+            {
+                "fase": "risposte",
+                "utente": self.utente.nome_utente,
+                "quiz": self.quiz.titolo,
+                "data": timezone.localdate().isoformat(),
+                f"risposta_domanda_{self.domanda1.id}": str(self.risposta1_corretta.id),
+                f"risposta_domanda_{self.domanda2.id}": str(self.risposta2_corretta.id),
+            },
+        )
+
+        self.assertRedirects(response, reverse("ricerca_partecipazioni"))
+        partecipazione = Partecipazione.objects.get(utente=self.utente, quiz=self.quiz)
+        risposte_registrate = RispostaUtenteQuiz.objects.filter(partecipazione=partecipazione)
+        self.assertEqual(risposte_registrate.count(), 2)
+        self.assertTrue(
+            risposte_registrate.filter(
+                domanda=self.domanda1, risposta=self.risposta1_corretta
+            ).exists()
+        )
+
+    def test_risposta_mancante_non_salva_nulla_e_mostra_errore(self):
+        response = self.client.post(
+            reverse("crea_partecipazione"),
+            {
+                "fase": "risposte",
+                "utente": self.utente.nome_utente,
+                "quiz": self.quiz.titolo,
+                "data": timezone.localdate().isoformat(),
+                f"risposta_domanda_{self.domanda1.id}": str(self.risposta1_corretta.id),
+                # manca volutamente la risposta alla seconda domanda
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Selezionare una risposta per la domanda 2.")
+        self.assertFalse(
+            Partecipazione.objects.filter(utente=self.utente, quiz=self.quiz).exists()
+        )
