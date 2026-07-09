@@ -8,24 +8,91 @@
 <div class="search-panel">
     <h1>Ricerca Quiz</h1>
     <form method="get" action="{% url 'ricerca_quiz' %}" class="search-form">
-        <div class="form-group">
-            <label for="titolo">Titolo</label>
-            <input type="text" id="titolo" name="titolo" value="{{ filtri.titolo }}">
+        <input type="hidden" name="sort" value="{{ sort }}">
+        <fieldset class="filter-group">
+            <legend>Quiz</legend>
+            <div class="filter-fields">
+                <div class="form-group">
+                    <label for="titolo">Titolo</label>
+                    <input type="text" id="titolo" name="titolo" value="{{ filtri.titolo }}">
+                </div>
+                <div class="form-group">
+                    <label for="autore">Username autore</label>
+                    <input type="text" id="autore" name="autore" value="{{ filtri.autore }}">
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="filter-group">
+            <legend>Periodo</legend>
+            <div class="filter-fields">
+                <div class="form-group">
+                    <label for="data_da">Inizio dal</label>
+                    <input type="date" id="data_da" name="data_da" value="{{ filtri.data_da }}">
+                </div>
+                <div class="form-group">
+                    <label for="data_a">Fine entro il</label>
+                    <input type="date" id="data_a" name="data_a" value="{{ filtri.data_a }}">
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="filter-group">
+            <legend>Dimensione</legend>
+            <div class="filter-fields">
+                <div class="form-group form-group-compact">
+                    <label for="domande_min">Domande min</label>
+                    <input type="number" id="domande_min" name="domande_min" min="0" value="{{ filtri.domande_min }}">
+                </div>
+                <div class="form-group form-group-compact">
+                    <label for="domande_max">Domande max</label>
+                    <input type="number" id="domande_max" name="domande_max" min="0" value="{{ filtri.domande_max }}">
+                </div>
+                <div class="form-group form-group-compact">
+                    <label for="partecipazioni_min">Partecipazioni min</label>
+                    <input type="number" id="partecipazioni_min" name="partecipazioni_min" min="0" value="{{ filtri.partecipazioni_min }}">
+                </div>
+                <div class="form-group form-group-compact">
+                    <label for="partecipazioni_max">Partecipazioni max</label>
+                    <input type="number" id="partecipazioni_max" name="partecipazioni_max" min="0" value="{{ filtri.partecipazioni_max }}">
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="filter-group filter-group-wide">
+            <legend>Punteggi</legend>
+            <div class="filter-fields">
+                <div class="form-group form-group-compact">
+                    <label for="punteggio_medio_min">Medio min</label>
+                    <input type="number" step="0.1" id="punteggio_medio_min" name="punteggio_medio_min" value="{{ filtri.punteggio_medio_min }}">
+                </div>
+                <div class="form-group form-group-compact">
+                    <label for="punteggio_medio_max">Medio max</label>
+                    <input type="number" step="0.1" id="punteggio_medio_max" name="punteggio_medio_max" value="{{ filtri.punteggio_medio_max }}">
+                </div>
+                <div class="form-group form-group-compact">
+                    <label for="punteggio_minimo_min">Minimo da</label>
+                    <input type="number" step="0.1" id="punteggio_minimo_min" name="punteggio_minimo_min" value="{{ filtri.punteggio_minimo_min }}">
+                </div>
+                <div class="form-group form-group-compact">
+                    <label for="punteggio_minimo_max">Minimo a</label>
+                    <input type="number" step="0.1" id="punteggio_minimo_max" name="punteggio_minimo_max" value="{{ filtri.punteggio_minimo_max }}">
+                </div>
+                <div class="form-group form-group-compact">
+                    <label for="punteggio_massimo_min">Massimo da</label>
+                    <input type="number" step="0.1" id="punteggio_massimo_min" name="punteggio_massimo_min" value="{{ filtri.punteggio_massimo_min }}">
+                </div>
+                <div class="form-group form-group-compact">
+                    <label for="punteggio_massimo_max">Massimo a</label>
+                    <input type="number" step="0.1" id="punteggio_massimo_max" name="punteggio_massimo_max" value="{{ filtri.punteggio_massimo_max }}">
+                </div>
+            </div>
+        </fieldset>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Cerca</button>
+            <a href="{% url 'ricerca_quiz' %}" class="btn btn-secondary">Azzera</a>
         </div>
-        <div class="form-group">
-            <label for="creatore">Creatore</label>
-            <input type="text" id="creatore" name="creatore" value="{{ filtri.creatore }}">
-        </div>
-        <div class="form-group">
-            <label for="data_da">Inizio dal</label>
-            <input type="date" id="data_da" name="data_da" value="{{ filtri.data_da }}">
-        </div>
-        <div class="form-group">
-            <label for="data_a">Fine entro il</label>
-            <input type="date" id="data_a" name="data_a" value="{{ filtri.data_a }}">
-        </div>
-        <button type="submit" class="btn btn-primary">Cerca</button>
-        <a href="{% url 'ricerca_quiz' %}" class="btn btn-secondary">Azzera</a>
     </form>
 </div>
 {% endblock %}
@@ -33,36 +100,47 @@
 {% block content %}
 {# Tabella dei risultati della ricerca, con messaggio alternativo se non ci sono corrispondenze. #}
 <div class="results-toolbar">
-    <span class="results-count">{{ elenco_quiz|length }} quiz trovat{{ elenco_quiz|length|pluralize:"o,i" }}</span>
+    <span class="results-count">{{ page_obj.paginator.count }} quiz trovat{{ page_obj.paginator.count|pluralize:"o,i" }}</span>
 </div>
 
 {% if elenco_quiz %}
-<div class="table-wrapper">
+<div class="table-wrapper table-wrapper-wide">
     <table class="data-table">
         <thead>
             <tr>
-                <th>Titolo</th>
-                <th>Creatore</th>
-                <th>Data inizio</th>
-                <th>Data fine</th>
+                <th><a href="?{{ sort_links.titolo.url }}" class="sort-link {% if sort_links.titolo.attivo %}active{% endif %}">Titolo <span class="sort-icon" aria-hidden="true">{{ sort_links.titolo.indicatore }}</span></a></th>
+                <th><a href="?{{ sort_links.autore.url }}" class="sort-link {% if sort_links.autore.attivo %}active{% endif %}">Autore <span class="sort-icon" aria-hidden="true">{{ sort_links.autore.indicatore }}</span></a></th>
+                <th class="text-end"><a href="?{{ sort_links.data_inizio.url }}" class="sort-link {% if sort_links.data_inizio.attivo %}active{% endif %}">Data inizio <span class="sort-icon" aria-hidden="true">{{ sort_links.data_inizio.indicatore }}</span></a></th>
+                <th class="text-end"><a href="?{{ sort_links.data_fine.url }}" class="sort-link {% if sort_links.data_fine.attivo %}active{% endif %}">Data fine <span class="sort-icon" aria-hidden="true">{{ sort_links.data_fine.indicatore }}</span></a></th>
+                <th class="text-end"><a href="?{{ sort_links.domande.url }}" class="sort-link {% if sort_links.domande.attivo %}active{% endif %}">Domande <span class="sort-icon" aria-hidden="true">{{ sort_links.domande.indicatore }}</span></a></th>
+                <th class="text-end"><a href="?{{ sort_links.partecipazioni.url }}" class="sort-link {% if sort_links.partecipazioni.attivo %}active{% endif %}">Partecipazioni <span class="sort-icon" aria-hidden="true">{{ sort_links.partecipazioni.indicatore }}</span></a></th>
+                <th class="text-end"><a href="?{{ sort_links.punteggio_medio.url }}" class="sort-link {% if sort_links.punteggio_medio.attivo %}active{% endif %}">P. medio <span class="sort-icon" aria-hidden="true">{{ sort_links.punteggio_medio.indicatore }}</span></a></th>
+                <th class="text-end"><a href="?{{ sort_links.punteggio_minimo.url }}" class="sort-link {% if sort_links.punteggio_minimo.attivo %}active{% endif %}">P. min <span class="sort-icon" aria-hidden="true">{{ sort_links.punteggio_minimo.indicatore }}</span></a></th>
+                <th class="text-end"><a href="?{{ sort_links.punteggio_massimo.url }}" class="sort-link {% if sort_links.punteggio_massimo.attivo %}active{% endif %}">P. max <span class="sort-icon" aria-hidden="true">{{ sort_links.punteggio_massimo.indicatore }}</span></a></th>
                 <th></th>
             </tr>
         </thead>
         <tbody>
             {% for quiz in elenco_quiz %}
             <tr>
-                <td><a href="{% url 'dettaglio_quiz' quiz.id %}" class="table-link">{{ quiz.titolo }}</a></td>
-                <td>{{ quiz.creatore.nome_utente }}</td>
-                <td>{{ quiz.data_inizio|date:"d/m/Y" }}</td>
-                <td>{{ quiz.data_fine|date:"d/m/Y" }}</td>
+                <td><a href="{% url 'dettaglio_quiz' quiz.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ quiz.titolo }}</a></td>
+                <td><a href="{% url 'dettaglio_utente' quiz.creatore.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ quiz.creatore.nome_utente }}</a></td>
+                <td class="text-end">{{ quiz.data_inizio|date:"d/m/Y" }}</td>
+                <td class="text-end">{{ quiz.data_fine|date:"d/m/Y" }}</td>
+                <td class="text-end">{{ quiz.n_domande }}</td>
+                <td class="text-end">{{ quiz.n_partecipazioni }}</td>
+                <td class="text-end">{% if quiz.punteggio_medio is not None %}{{ quiz.punteggio_medio|floatformat:1 }}{% else %}—{% endif %}</td>
+                <td class="text-end">{% if quiz.punteggio_minimo is not None %}{{ quiz.punteggio_minimo|floatformat:1 }}{% else %}—{% endif %}</td>
+                <td class="text-end">{% if quiz.punteggio_massimo is not None %}{{ quiz.punteggio_massimo|floatformat:1 }}{% else %}—{% endif %}</td>
                 <td class="actions-cell">
-                    <a href="{% url 'dettaglio_quiz' quiz.id %}" class="btn btn-secondary btn-sm">Dettaglio</a>
+                    <a href="{% url 'dettaglio_quiz' quiz.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm">Dettaglio</a>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+{% include "quiz/_paginazione.html" %}
 {% else %}
 <div class="msg-empty">Nessun quiz corrisponde ai criteri di ricerca. Modificare i filtri e riprovare.</div>
 {% endif %}

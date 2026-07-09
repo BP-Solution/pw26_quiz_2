@@ -8,7 +8,7 @@
 <div class="search-panel">
     <div class="panel-header">
         <h1>{{ quiz.titolo }}</h1>
-        <a href="{% url 'ricerca_quiz' %}" class="btn btn-secondary btn-sm">Torna alla ricerca</a>
+        <a href="{{ back_url }}" class="btn btn-secondary btn-sm">Torna indietro</a>
     </div>
 </div>
 {% endblock %}
@@ -20,7 +20,10 @@
     <div class="detail-grid">
         <div class="detail-field">
             <label>Creatore</label>
-            <span>{{ quiz.creatore.nome_utente }} ({{ quiz.creatore.nome }} {{ quiz.creatore.cognome }})</span>
+            <span>
+                {{ quiz.creatore.nome }} {{ quiz.creatore.cognome }}
+                (<a href="{% url 'dettaglio_utente' quiz.creatore.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ quiz.creatore.nome_utente }}</a>)
+            </span>
         </div>
         <div class="detail-field">
             <label>Data inizio</label>
@@ -32,16 +35,32 @@
         </div>
         <div class="detail-field">
             <label>Domande</label>
-            <span>{{ domande|length }}</span>
+            <span>{{ n_domande }}</span>
         </div>
         <div class="detail-field">
             <label>Partecipazioni</label>
             <span>{{ n_partecipazioni }}</span>
         </div>
+        <div class="detail-field">
+            <label>Punteggio medio</label>
+            <span>{% if punteggio_medio is not None %}{{ punteggio_medio|floatformat:1 }}{% else %}—{% endif %}</span>
+        </div>
+        <div class="detail-field">
+            <label>Punteggio minimo</label>
+            <span>{% if punteggio_minimo is not None %}{{ punteggio_minimo|floatformat:1 }}{% else %}—{% endif %}</span>
+        </div>
+        <div class="detail-field">
+            <label>Punteggio massimo</label>
+            <span>{% if punteggio_massimo is not None %}{{ punteggio_massimo|floatformat:1 }}{% else %}—{% endif %}</span>
+        </div>
     </div>
 </div>
 
 {# Una tabella di risposte per ogni domanda del quiz. #}
+<div class="results-toolbar">
+    <span class="results-count">{{ n_domande }} domand{{ n_domande|pluralize:"a,e" }} con risposte possibili</span>
+</div>
+
 {% for domanda in domande %}
 <div class="table-block">
     <div class="section-title">Domanda {{ domanda.numero }} — {{ domanda.testo }}</div>
@@ -49,16 +68,16 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>N.</th>
+                    <th class="text-end">N.</th>
                     <th>Testo risposta</th>
                     <th>Tipo</th>
-                    <th>Punteggio</th>
+                    <th class="text-end">Punteggio</th>
                 </tr>
             </thead>
             <tbody>
                 {% for risposta in domanda.risposte.all %}
-                <tr>
-                    <td>{{ risposta.numero }}</td>
+                <tr class="{% if risposta.tipo == 'Corretta' %}correct-answer-row{% endif %}">
+                    <td class="text-end">{{ risposta.numero }}</td>
                     <td>{{ risposta.testo }}</td>
                     <td>
                         {% if risposta.tipo == "Corretta" %}
@@ -67,7 +86,7 @@
                         <span class="badge badge-danger">Sbagliata</span>
                         {% endif %}
                     </td>
-                    <td>{% if risposta.punteggio is not None %}{{ risposta.punteggio }}{% else %}—{% endif %}</td>
+                    <td class="text-end">{% if risposta.punteggio is not None %}{{ risposta.punteggio }}{% else %}—{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>

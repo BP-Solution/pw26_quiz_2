@@ -8,7 +8,7 @@
 <div class="search-panel">
     <div class="panel-header">
         <h1>Elimina partecipazione</h1>
-        <a href="{% url 'ricerca_partecipazioni' %}" class="btn btn-secondary btn-sm">Torna alle partecipazioni</a>
+        <a href="{{ back_url }}" class="btn btn-secondary btn-sm">Torna indietro</a>
     </div>
 </div>
 {% endblock %}
@@ -18,10 +18,10 @@
 <div class="crud-card">
     <h2>Confermare l'eliminazione?</h2>
 
-    <div class="detail-grid" style="margin-bottom: 24px;">
+    <div class="delete-summary detail-grid">
         <div class="detail-field">
             <label>Utente</label>
-            <span>{{ partecipazione.utente.nome_utente }}</span>
+            <span>{{ partecipazione.utente.nome_utente }} ({{ partecipazione.utente.nome }} {{ partecipazione.utente.cognome }})</span>
         </div>
         <div class="detail-field">
             <label>Quiz</label>
@@ -31,17 +31,22 @@
             <label>Data</label>
             <span>{{ partecipazione.data|date:"d/m/Y" }}</span>
         </div>
+        <div class="detail-field">
+            <label>Risposte collegate</label>
+            <span>{{ partecipazione.risposte_date.count }}</span>
+        </div>
     </div>
 
-    <div class="msg-empty" style="margin-bottom: 24px;">
+    <div class="delete-warning">
         Attenzione: eliminando la partecipazione verranno eliminate anche tutte le risposte date dall'utente in questa partecipazione. L'operazione non è reversibile.
     </div>
 
     <form method="post" class="crud-form">
         {% csrf_token %}
+        <input type="hidden" name="next" value="{{ back_url }}">
         <div class="form-actions">
             <button type="submit" class="btn btn-danger">Elimina definitivamente</button>
-            <a href="{% url 'ricerca_partecipazioni' %}" class="btn btn-secondary">Annulla</a>
+            <a href="{{ back_url }}" class="btn btn-secondary">Annulla</a>
         </div>
     </form>
 </div>

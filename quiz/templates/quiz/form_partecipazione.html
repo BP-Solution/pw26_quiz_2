@@ -8,7 +8,7 @@
 <div class="search-panel">
     <div class="panel-header">
         <h1>{{ titolo_pagina }}</h1>
-        <a href="{% url url_annulla %}" class="btn btn-secondary btn-sm">Torna alle partecipazioni</a>
+        <a href="{{ back_url }}" class="btn btn-secondary btn-sm">Torna indietro</a>
     </div>
 </div>
 {% endblock %}
@@ -18,9 +18,9 @@
 {% if messages %}
     {% for message in messages %}
         {% if message.tags == "error" %}
-        <div class="msg-error">{{ message }}</div>
+        <div class="alert alert-danger" role="alert">{{ message }}</div>
         {% else %}
-        <div class="msg-success">{{ message }}</div>
+        <div class="alert alert-success" role="alert">{{ message }}</div>
         {% endif %}
     {% endfor %}
 {% endif %}
@@ -30,6 +30,7 @@
     <h2>{{ titolo_pagina }}</h2>
     <form method="post" class="crud-form">
         {% csrf_token %}
+        <input type="hidden" name="next" value="{{ back_url }}">
         <div class="form-group">
             <label for="utente">Utente</label>
             <select id="utente" name="utente">
@@ -61,7 +62,7 @@
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Salva</button>
-            <a href="{% url url_annulla %}" class="btn btn-secondary">Annulla</a>
+            <a href="{{ back_url }}" class="btn btn-secondary">Annulla</a>
         </div>
     </form>
 </div>

@@ -8,24 +8,39 @@
 <div class="search-panel">
     <h1>Ricerca Partecipazioni</h1>
     <form method="get" action="{% url 'ricerca_partecipazioni' %}" class="search-form">
-        <div class="form-group">
-            <label for="utente">Utente</label>
-            <input type="text" id="utente" name="utente" value="{{ filtri.utente }}">
+        <input type="hidden" name="sort" value="{{ sort }}">
+        <fieldset class="filter-group">
+            <legend>Soggetti</legend>
+            <div class="filter-fields">
+                <div class="form-group">
+                    <label for="utente">Username utente</label>
+                    <input type="text" id="utente" name="utente" value="{{ filtri.utente }}">
+                </div>
+                <div class="form-group">
+                    <label for="quiz">Titolo quiz</label>
+                    <input type="text" id="quiz" name="quiz" value="{{ filtri.quiz }}">
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="filter-group">
+            <legend>Periodo</legend>
+            <div class="filter-fields">
+                <div class="form-group">
+                    <label for="data_da">Data dal</label>
+                    <input type="date" id="data_da" name="data_da" value="{{ filtri.data_da }}">
+                </div>
+                <div class="form-group">
+                    <label for="data_a">Data al</label>
+                    <input type="date" id="data_a" name="data_a" value="{{ filtri.data_a }}">
+                </div>
+            </div>
+        </fieldset>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Cerca</button>
+            <a href="{% url 'ricerca_partecipazioni' %}" class="btn btn-secondary">Azzera</a>
         </div>
-        <div class="form-group">
-            <label for="quiz">Quiz</label>
-            <input type="text" id="quiz" name="quiz" value="{{ filtri.quiz }}">
-        </div>
-        <div class="form-group">
-            <label for="data_da">Dal</label>
-            <input type="date" id="data_da" name="data_da" value="{{ filtri.data_da }}">
-        </div>
-        <div class="form-group">
-            <label for="data_a">Al</label>
-            <input type="date" id="data_a" name="data_a" value="{{ filtri.data_a }}">
-        </div>
-        <button type="submit" class="btn btn-primary">Cerca</button>
-        <a href="{% url 'ricerca_partecipazioni' %}" class="btn btn-secondary">Azzera</a>
     </form>
 </div>
 {% endblock %}
@@ -35,17 +50,17 @@
 {% if messages %}
     {% for message in messages %}
         {% if message.tags == "error" %}
-        <div class="msg-error">{{ message }}</div>
+        <div class="alert alert-danger" role="alert">{{ message }}</div>
         {% else %}
-        <div class="msg-success">{{ message }}</div>
+        <div class="alert alert-success" role="alert">{{ message }}</div>
         {% endif %}
     {% endfor %}
 {% endif %}
 
 {# Tabella dei risultati della ricerca con le azioni di modifica ed eliminazione per ogni riga. #}
 <div class="results-toolbar">
-    <span class="results-count">{{ partecipazioni|length }} partecipazion{{ partecipazioni|length|pluralize:"e,i" }} trovat{{ partecipazioni|length|pluralize:"a,e" }}</span>
-    <a href="{% url 'crea_partecipazione' %}" class="btn btn-success">Nuova partecipazione</a>
+    <span class="results-count">{{ page_obj.paginator.count }} partecipazion{{ page_obj.paginator.count|pluralize:"e,i" }} trovat{{ page_obj.paginator.count|pluralize:"a,e" }}</span>
+    <a href="{% url 'crea_partecipazione' %}?next={{ request.get_full_path|urlencode }}" class="btn btn-success">Nuova partecipazione</a>
 </div>
 
 {% if partecipazioni %}
@@ -53,27 +68,29 @@
     <table class="data-table">
         <thead>
             <tr>
-                <th>Utente</th>
-                <th>Quiz</th>
-                <th>Data</th>
+                <th><a href="?{{ sort_links.utente.url }}" class="sort-link {% if sort_links.utente.attivo %}active{% endif %}">Utente <span class="sort-icon" aria-hidden="true">{{ sort_links.utente.indicatore }}</span></a></th>
+                <th><a href="?{{ sort_links.quiz.url }}" class="sort-link {% if sort_links.quiz.attivo %}active{% endif %}">Quiz <span class="sort-icon" aria-hidden="true">{{ sort_links.quiz.indicatore }}</span></a></th>
+                <th class="text-end"><a href="?{{ sort_links.data.url }}" class="sort-link {% if sort_links.data.attivo %}active{% endif %}">Data <span class="sort-icon" aria-hidden="true">{{ sort_links.data.indicatore }}</span></a></th>
                 <th>Azioni</th>
             </tr>
         </thead>
         <tbody>
             {% for partecipazione in partecipazioni %}
             <tr>
-                <td>{{ partecipazione.utente.nome_utente }}</td>
-                <td><a href="{% url 'dettaglio_quiz' partecipazione.quiz.id %}" class="table-link">{{ partecipazione.quiz.titolo }}</a></td>
-                <td>{{ partecipazione.data|date:"d/m/Y" }}</td>
+                <td><a href="{% url 'dettaglio_utente' partecipazione.utente.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ partecipazione.utente.nome_utente }}</a></td>
+                <td><a href="{% url 'dettaglio_quiz' partecipazione.quiz.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ partecipazione.quiz.titolo }}</a></td>
+                <td class="text-end">{{ partecipazione.data|date:"d/m/Y" }}</td>
                 <td class="actions-cell">
-                    <a href="{% url 'modifica_partecipazione' partecipazione.id %}" class="btn btn-secondary btn-sm">Modifica</a>
-                    <a href="{% url 'elimina_partecipazione' partecipazione.id %}" class="btn btn-danger btn-sm">Elimina</a>
+                    <a href="{% url 'dettaglio_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm">Dettaglio</a>
+                    <a href="{% url 'modifica_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm">Modifica</a>
+                    <a href="{% url 'elimina_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-danger btn-sm">Elimina</a>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+{% include "quiz/_paginazione.html" %}
 {% else %}
 <div class="msg-empty">Nessuna partecipazione corrisponde ai criteri di ricerca. Modificare i filtri e riprovare.</div>
 {% endif %}

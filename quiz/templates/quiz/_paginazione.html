@@ -1,0 +1,34 @@
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="pagination-nav" aria-label="Paginazione">
+    <span class="pagination-summary">
+        Risultati {{ page_obj.start_index }}-{{ page_obj.end_index }} di {{ page_obj.paginator.count }}
+    </span>
+    <div class="pagination-links">
+        {% if page_obj.has_previous %}
+        <a href="?{% if page_querystring %}{{ page_querystring }}&amp;{% endif %}page=1" class="btn btn-secondary btn-pagination pagination-step" aria-label="Prima pagina">« Prima</a>
+        <a href="?{% if page_querystring %}{{ page_querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" class="btn btn-secondary btn-pagination pagination-step" aria-label="Pagina precedente">‹ Prec.</a>
+        {% else %}
+        <span class="btn btn-pagination disabled pagination-step">« Prima</span>
+        <span class="btn btn-pagination disabled pagination-step">‹ Prec.</span>
+        {% endif %}
+
+        {% for numero in page_numbers %}
+            {% if numero == "..." %}
+            <span class="ellipsis">...</span>
+            {% elif numero == page_obj.number %}
+            <span class="btn btn-primary btn-pagination pagination-page current" aria-current="page">{{ numero }}</span>
+            {% else %}
+            <a href="?{% if page_querystring %}{{ page_querystring }}&amp;{% endif %}page={{ numero }}" class="btn btn-secondary btn-pagination pagination-page">{{ numero }}</a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <a href="?{% if page_querystring %}{{ page_querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}" class="btn btn-secondary btn-pagination pagination-step" aria-label="Pagina successiva">Succ. ›</a>
+        <a href="?{% if page_querystring %}{{ page_querystring }}&amp;{% endif %}page={{ page_obj.paginator.num_pages }}" class="btn btn-secondary btn-pagination pagination-step" aria-label="Ultima pagina">Ultima »</a>
+        {% else %}
+        <span class="btn btn-pagination disabled pagination-step">Succ. ›</span>
+        <span class="btn btn-pagination disabled pagination-step">Ultima »</span>
+        {% endif %}
+    </div>
+</nav>
+{% endif %}

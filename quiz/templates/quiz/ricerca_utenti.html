@@ -8,24 +8,55 @@
 <div class="search-panel">
     <h1>Ricerca Utenti</h1>
     <form method="get" action="{% url 'ricerca_utenti' %}" class="search-form">
-        <div class="form-group">
-            <label for="nome_utente">Nome utente</label>
-            <input type="text" id="nome_utente" name="nome_utente" value="{{ filtri.nome_utente }}">
+        <input type="hidden" name="sort" value="{{ sort }}">
+        <fieldset class="filter-group filter-group-wide">
+            <legend>Identità</legend>
+            <div class="filter-fields">
+                <div class="form-group">
+                    <label for="nome_utente">Username</label>
+                    <input type="text" id="nome_utente" name="nome_utente" value="{{ filtri.nome_utente }}">
+                </div>
+                <div class="form-group">
+                    <label for="nome">Nome</label>
+                    <input type="text" id="nome" name="nome" value="{{ filtri.nome }}">
+                </div>
+                <div class="form-group">
+                    <label for="cognome">Cognome</label>
+                    <input type="text" id="cognome" name="cognome" value="{{ filtri.cognome }}">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="text" id="email" name="email" value="{{ filtri.email }}">
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="filter-group">
+            <legend>Attività</legend>
+            <div class="filter-fields">
+                <div class="form-group form-group-compact">
+                    <label for="quiz_creati_min">Quiz creati min</label>
+                    <input type="number" id="quiz_creati_min" name="quiz_creati_min" min="0" value="{{ filtri.quiz_creati_min }}">
+                </div>
+                <div class="form-group form-group-compact">
+                    <label for="quiz_creati_max">Quiz creati max</label>
+                    <input type="number" id="quiz_creati_max" name="quiz_creati_max" min="0" value="{{ filtri.quiz_creati_max }}">
+                </div>
+                <div class="form-group form-group-compact">
+                    <label for="partecipazioni_min">Partecipazioni min</label>
+                    <input type="number" id="partecipazioni_min" name="partecipazioni_min" min="0" value="{{ filtri.partecipazioni_min }}">
+                </div>
+                <div class="form-group form-group-compact">
+                    <label for="partecipazioni_max">Partecipazioni max</label>
+                    <input type="number" id="partecipazioni_max" name="partecipazioni_max" min="0" value="{{ filtri.partecipazioni_max }}">
+                </div>
+            </div>
+        </fieldset>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Cerca</button>
+            <a href="{% url 'ricerca_utenti' %}" class="btn btn-secondary">Azzera</a>
         </div>
-        <div class="form-group">
-            <label for="nome">Nome</label>
-            <input type="text" id="nome" name="nome" value="{{ filtri.nome }}">
-        </div>
-        <div class="form-group">
-            <label for="cognome">Cognome</label>
-            <input type="text" id="cognome" name="cognome" value="{{ filtri.cognome }}">
-        </div>
-        <div class="form-group">
-            <label for="email">Email</label>
-            <input type="text" id="email" name="email" value="{{ filtri.email }}">
-        </div>
-        <button type="submit" class="btn btn-primary">Cerca</button>
-        <a href="{% url 'ricerca_utenti' %}" class="btn btn-secondary">Azzera</a>
     </form>
 </div>
 {% endblock %}
@@ -33,7 +64,7 @@
 {% block content %}
 {# Tabella dei risultati della ricerca, con messaggio alternativo se non ci sono corrispondenze. #}
 <div class="results-toolbar">
-    <span class="results-count">{{ utenti|length }} utent{{ utenti|length|pluralize:"e,i" }} trovat{{ utenti|length|pluralize:"o,i" }}</span>
+    <span class="results-count">{{ page_obj.paginator.count }} utent{{ page_obj.paginator.count|pluralize:"e,i" }} trovat{{ page_obj.paginator.count|pluralize:"o,i" }}</span>
 </div>
 
 {% if utenti %}
@@ -41,10 +72,13 @@
     <table class="data-table">
         <thead>
             <tr>
-                <th>Nome utente</th>
-                <th>Nome</th>
-                <th>Cognome</th>
-                <th>Email</th>
+                <th><a href="?{{ sort_links.nome_utente.url }}" class="sort-link {% if sort_links.nome_utente.attivo %}active{% endif %}">Nome utente <span class="sort-icon" aria-hidden="true">{{ sort_links.nome_utente.indicatore }}</span></a></th>
+                <th><a href="?{{ sort_links.nome.url }}" class="sort-link {% if sort_links.nome.attivo %}active{% endif %}">Nome <span class="sort-icon" aria-hidden="true">{{ sort_links.nome.indicatore }}</span></a></th>
+                <th><a href="?{{ sort_links.cognome.url }}" class="sort-link {% if sort_links.cognome.attivo %}active{% endif %}">Cognome <span class="sort-icon" aria-hidden="true">{{ sort_links.cognome.indicatore }}</span></a></th>
+                <th><a href="?{{ sort_links.email.url }}" class="sort-link {% if sort_links.email.attivo %}active{% endif %}">Email <span class="sort-icon" aria-hidden="true">{{ sort_links.email.indicatore }}</span></a></th>
+                <th class="text-end"><a href="?{{ sort_links.quiz_creati.url }}" class="sort-link {% if sort_links.quiz_creati.attivo %}active{% endif %}">Quiz creati <span class="sort-icon" aria-hidden="true">{{ sort_links.quiz_creati.indicatore }}</span></a></th>
+                <th class="text-end"><a href="?{{ sort_links.partecipazioni.url }}" class="sort-link {% if sort_links.partecipazioni.attivo %}active{% endif %}">Partecipazioni <span class="sort-icon" aria-hidden="true">{{ sort_links.partecipazioni.indicatore }}</span></a></th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -54,11 +88,17 @@
                 <td>{{ utente.nome }}</td>
                 <td>{{ utente.cognome }}</td>
                 <td>{{ utente.email }}</td>
+                <td class="text-end">{{ utente.n_quiz_creati }}</td>
+                <td class="text-end">{{ utente.n_partecipazioni }}</td>
+                <td class="actions-cell">
+                    <a href="{% url 'dettaglio_utente' utente.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm">Dettaglio</a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+{% include "quiz/_paginazione.html" %}
 {% else %}
 <div class="msg-empty">Nessun utente corrisponde ai criteri di ricerca. Modificare i filtri e riprovare.</div>
 {% endif %}
