@@ -8,7 +8,7 @@
 <div class="search-panel">
     <div class="panel-header">
         <h1>Elimina partecipazione</h1>
-        <a href="{{ back_url }}" class="btn btn-secondary btn-sm">Torna indietro</a>
+        <a href="{{ back_url }}" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left" aria-hidden="true"></i> Torna indietro</a>
     </div>
 </div>
 {% endblock %}
@@ -45,8 +45,8 @@
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ back_url }}">
         <div class="form-actions">
-            <button type="submit" class="btn btn-danger">Elimina definitivamente</button>
-            <a href="{{ back_url }}" class="btn btn-secondary">Annulla</a>
+            <button type="submit" class="btn btn-danger"><i class="bi bi-trash" aria-hidden="true"></i> Elimina definitivamente</button>
+            <a href="{{ back_url }}" class="btn btn-secondary"><i class="bi bi-x-lg" aria-hidden="true"></i> Annulla</a>
         </div>
     </form>
 </div>

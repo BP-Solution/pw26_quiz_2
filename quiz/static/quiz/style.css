@@ -249,6 +249,17 @@ a:hover { text-decoration: underline; color: var(--beige-deeper); }
     box-shadow: 0 0 0 3px rgba(196, 168, 130, 0.25);
 }
 
+/* Campo di sola lettura (es. utente/quiz nella modifica partecipazione): stesso
+   ingombro di un input ma senza bordo interattivo, per segnalare che non è editabile. */
+.form-static {
+    padding: 9px 12px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background-color: var(--beige-mid);
+    color: var(--brown-text);
+    font-size: 0.93rem;
+}
+
 
 .btn {
     padding: 9px 18px;

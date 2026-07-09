@@ -38,8 +38,8 @@
         </fieldset>
 
         <div class="filter-actions">
-            <button type="submit" class="btn btn-primary">Cerca</button>
-            <a href="{% url 'ricerca_partecipazioni' %}" class="btn btn-secondary">Azzera</a>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-search" aria-hidden="true"></i> Cerca</button>
+            <a href="{% url 'ricerca_partecipazioni' %}" class="btn btn-secondary"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Azzera</a>
         </div>
     </form>
 </div>
@@ -60,7 +60,7 @@
 {# Tabella dei risultati della ricerca con le azioni di modifica ed eliminazione per ogni riga. #}
 <div class="results-toolbar">
     <span class="results-count">{{ page_obj.paginator.count }} partecipazion{{ page_obj.paginator.count|pluralize:"e,i" }} trovat{{ page_obj.paginator.count|pluralize:"a,e" }}</span>
-    <a href="{% url 'crea_partecipazione' %}?next={{ request.get_full_path|urlencode }}" class="btn btn-success">Nuova partecipazione</a>
+    <a href="{% url 'crea_partecipazione' %}?next={{ request.get_full_path|urlencode }}" class="btn btn-success"><i class="bi bi-plus-lg" aria-hidden="true"></i> Nuova partecipazione</a>
 </div>
 
 {% if partecipazioni %}
@@ -71,6 +71,7 @@
                 <th><a href="?{{ sort_links.utente.url }}" class="sort-link {% if sort_links.utente.attivo %}active{% endif %}">Utente <span class="sort-icon" aria-hidden="true">{{ sort_links.utente.indicatore }}</span></a></th>
                 <th><a href="?{{ sort_links.quiz.url }}" class="sort-link {% if sort_links.quiz.attivo %}active{% endif %}">Quiz <span class="sort-icon" aria-hidden="true">{{ sort_links.quiz.indicatore }}</span></a></th>
                 <th class="text-end"><a href="?{{ sort_links.data.url }}" class="sort-link {% if sort_links.data.attivo %}active{% endif %}">Data <span class="sort-icon" aria-hidden="true">{{ sort_links.data.indicatore }}</span></a></th>
+                <th class="text-end"><a href="?{{ sort_links.punteggio.url }}" class="sort-link {% if sort_links.punteggio.attivo %}active{% endif %}">Punteggio <span class="sort-icon" aria-hidden="true">{{ sort_links.punteggio.indicatore }}</span></a></th>
                 <th>Azioni</th>
             </tr>
         </thead>
@@ -80,10 +81,11 @@
                 <td><a href="{% url 'dettaglio_utente' partecipazione.utente.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ partecipazione.utente.nome_utente }}</a></td>
                 <td><a href="{% url 'dettaglio_quiz' partecipazione.quiz.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ partecipazione.quiz.titolo }}</a></td>
                 <td class="text-end">{{ partecipazione.data|date:"d/m/Y" }}</td>
+                <td class="text-end">{% if partecipazione.n_risposte > 0 %}{{ partecipazione.punteggio_totale|floatformat:1 }}{% else %}—{% endif %}</td>
                 <td class="actions-cell">
                     <a href="{% url 'dettaglio_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm">Dettaglio</a>
-                    <a href="{% url 'modifica_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm">Modifica</a>
-                    <a href="{% url 'elimina_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-danger btn-sm">Elimina</a>
+                    <a href="{% url 'modifica_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm"><i class="bi bi-pencil" aria-hidden="true"></i> Modifica</a>
+                    <a href="{% url 'elimina_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-danger btn-sm"><i class="bi bi-trash" aria-hidden="true"></i> Elimina</a>
                 </td>
             </tr>
             {% endfor %}

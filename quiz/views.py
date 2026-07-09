@@ -7,7 +7,8 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db.models import Avg, Count, Min, Max, Prefetch
+from django.db.models import Avg, Count, DecimalField, Min, Max, OuterRef, Prefetch, Subquery, Sum, Value
+from django.db.models.functions import Coalesce
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -267,14 +268,53 @@ def dettaglio_utente(request, utente_id):
     return render(request, "quiz/dettaglio_utente.html", contesto)
 
 
+def espressione_punteggio_totale_partecipazione(riferimento="pk"):
+    """Espressione che calcola il punteggio totale di una partecipazione, cioè la somma
+    dei punteggi delle risposte date (le risposte senza punteggio valgono 0). Va usata
+    dentro un queryset di Partecipazione, correlato tramite OuterRef(riferimento)."""
+    return Coalesce(
+        Subquery(
+            RispostaUtenteQuiz.objects
+            .filter(partecipazione_id=OuterRef(riferimento))
+            .values("partecipazione_id")
+            .annotate(totale=Sum("risposta__punteggio"))
+            .values("totale"),
+            output_field=DecimalField(max_digits=6, decimal_places=1),
+        ),
+        Value(Decimal("0")),
+    )
+
+
+def statistiche_punteggio_quiz(riferimento_quiz="pk"):
+    """Subquery di media/minimo/massimo calcolate sul punteggio totale di ciascuna
+    partecipazione al quiz (non sulle singole risposte), evitando cosi di sottostimare
+    il punteggio dei quiz con molte domande. Pensata per essere usata come annotazione
+    su un queryset di Quiz, correlato tramite OuterRef(riferimento_quiz)."""
+    punteggi_partecipazioni = (
+        Partecipazione.objects
+        .filter(quiz=OuterRef(riferimento_quiz))
+        .annotate(punteggio_totale=espressione_punteggio_totale_partecipazione())
+        .values("quiz_id")
+        .annotate(
+            media=Avg("punteggio_totale"),
+            minimo=Min("punteggio_totale"),
+            massimo=Max("punteggio_totale"),
+        )
+    )
+    output_field = DecimalField(max_digits=8, decimal_places=2)
+    return {
+        "punteggio_medio": Subquery(punteggi_partecipazioni.values("media"), output_field=output_field),
+        "punteggio_minimo": Subquery(punteggi_partecipazioni.values("minimo"), output_field=output_field),
+        "punteggio_massimo": Subquery(punteggi_partecipazioni.values("massimo"), output_field=output_field),
+    }
+
+
 def ricerca_quiz(request):
     """Elenca i quiz applicando in AND i filtri opzionali su titolo, creatore e intervallo date."""
     elenco_quiz = Quiz.objects.select_related("creatore").annotate(
         n_domande=Count("domande", distinct=True),
         n_partecipazioni=Count("partecipazioni", distinct=True),
-        punteggio_medio=Avg("partecipazioni__risposte_date__risposta__punteggio"),
-        punteggio_minimo=Min("partecipazioni__risposte_date__risposta__punteggio"),
-        punteggio_massimo=Max("partecipazioni__risposte_date__risposta__punteggio"),
+        **statistiche_punteggio_quiz(),
     )
 
     titolo = request.GET.get("titolo", "").strip()
@@ -400,10 +440,14 @@ def dettaglio_quiz(request, quiz_id):
     domande = quiz.domande.prefetch_related(
         Prefetch("risposte", queryset=Risposta.objects.order_by("numero"))
     ).order_by("numero", "id")
-    punteggi = quiz.partecipazioni.aggregate(
-        punteggio_medio=Avg("risposte_date__risposta__punteggio"),
-        punteggio_minimo=Min("risposte_date__risposta__punteggio"),
-        punteggio_massimo=Max("risposte_date__risposta__punteggio"),
+    # Media/minimo/massimo vanno calcolati sul punteggio totale di ciascuna
+    # partecipazione (somma dei punteggi delle sue risposte), non sulle singole risposte.
+    punteggi = quiz.partecipazioni.annotate(
+        punteggio_totale=espressione_punteggio_totale_partecipazione()
+    ).aggregate(
+        punteggio_medio=Avg("punteggio_totale"),
+        punteggio_minimo=Min("punteggio_totale"),
+        punteggio_massimo=Max("punteggio_totale"),
     )
 
     contesto = {
@@ -422,8 +466,13 @@ def dettaglio_quiz(request, quiz_id):
 
 def ricerca_partecipazioni(request):
     """Elenca le partecipazioni applicando in AND i filtri opzionali su utente, quiz e intervallo date."""
-    partecipazioni = Partecipazione.objects.select_related(
-        "utente", "quiz"
+    # n_risposte serve solo a distinguere le partecipazioni senza risposte registrate
+    # (mostrate con "—") da quelle il cui punteggio totale e effettivamente 0.
+    partecipazioni = Partecipazione.objects.select_related("utente", "quiz").annotate(
+        n_risposte=Count("risposte_date", distinct=True),
+        punteggio_totale=Coalesce(
+            Sum("risposte_date__risposta__punteggio"), Value(Decimal("0"))
+        ),
     )
 
     utente = request.GET.get("utente", "").strip()
@@ -452,6 +501,8 @@ def ricerca_partecipazioni(request):
         "-quiz": ("-quiz__titolo", "-data", "id"),
         "data": ("data", "id"),
         "-data": ("-data", "id"),
+        "punteggio": ("punteggio_totale", "-data", "id"),
+        "-punteggio": ("-punteggio_totale", "-data", "id"),
     }
     partecipazioni, ordinamento = applica_ordinamento(
         partecipazioni,
@@ -475,6 +526,7 @@ def ricerca_partecipazioni(request):
                 "utente": "utente",
                 "quiz": "quiz",
                 "data": "data",
+                "punteggio": "punteggio",
             },
         ),
         "filtri": {
@@ -513,69 +565,99 @@ def dettaglio_partecipazione(request, partecipazione_id):
     return render(request, "quiz/dettaglio_partecipazione.html", contesto)
 
 
-def valida_partecipazione(utente_id, quiz_id, data_str):
-    """Valida i dati grezzi di una partecipazione (utente, quiz, data) restituendo
-    la lista di errori insieme agli oggetti risolti, cosi da poter essere riusata
-    sia in creazione che in modifica."""
+def valida_data_partecipazione(data_str, quiz):
+    """Valida la data di una partecipazione: presenza, formato ISO, non futura e
+    (se il quiz e noto) compresa nel suo periodo di validità. Usata sia in creazione
+    sia in modifica, dove utente e quiz non sono piu modificabili."""
+    errori = []
+    data_part = None
+
+    if not data_str:
+        errori.append("Inserire la data di partecipazione.")
+        return errori, None
+
+    try:
+        data_part = date.fromisoformat(data_str)
+    except ValueError:
+        errori.append("La data inserita non è valida.")
+        return errori, None
+
+    if data_part > timezone.localdate():
+        errori.append("La data di partecipazione non può essere futura.")
+
+    if quiz is not None and (data_part < quiz.data_inizio or data_part > quiz.data_fine):
+        errori.append(
+            f"La data deve essere compresa nel periodo di validità del quiz "
+            f"({quiz.data_inizio.strftime('%d/%m/%Y')} - {quiz.data_fine.strftime('%d/%m/%Y')})."
+        )
+
+    return errori, data_part
+
+
+def valida_partecipazione(nome_utente, titolo_quiz, data_str):
+    """Valida i dati grezzi di una nuova partecipazione, risolvendo utente e quiz a
+    partire dal testo digitato nei campi con autocompletamento (username e titolo)
+    invece che da un id di select, e restituisce la lista di errori insieme agli
+    oggetti risolti."""
     errori = []
     utente = None
     quiz = None
-    data_part = None
 
-    # Verifica che l'utente sia stato selezionato e che esista realmente.
-    if not utente_id:
+    # Risolve lo username in un utente esistente: nome_utente e univoco nel modello,
+    # quindi l'unica alternativa a una corrispondenza esatta e l'assenza di risultati.
+    if not nome_utente:
         errori.append("Selezionare un utente.")
     else:
-        utente = Utente.objects.filter(pk=utente_id).first()
+        utente = Utente.objects.filter(nome_utente=nome_utente).first()
         if utente is None:
-            errori.append("L'utente selezionato non esiste.")
+            errori.append(
+                "L'utente indicato non esiste: digitare uno username presente nell'elenco suggerito."
+            )
 
-    # Verifica che il quiz sia stato selezionato e che esista realmente.
-    if not quiz_id:
+    # Risolve il titolo in un quiz esistente. Il titolo non e vincolato a essere
+    # univoco, quindi va gestito anche il caso di piu quiz con lo stesso titolo.
+    if not titolo_quiz:
         errori.append("Selezionare un quiz.")
     else:
-        quiz = Quiz.objects.filter(pk=quiz_id).first()
-        if quiz is None:
-            errori.append("Il quiz selezionato non esiste.")
-
-    # Verifica che la data sia presente e in un formato ISO valido.
-    if not data_str:
-        errori.append("Inserire la data di partecipazione.")
-    else:
-        try:
-            data_part = date.fromisoformat(data_str)
-        except ValueError:
-            errori.append("La data inserita non è valida.")
-        else:
-            if data_part > timezone.localdate():
-                errori.append("La data di partecipazione non può essere futura.")
-
-    # Verifica di coerenza incrociata: la data deve rientrare nel periodo di validità del quiz.
-    if quiz is not None and data_part is not None:
-        if data_part < quiz.data_inizio or data_part > quiz.data_fine:
+        corrispondenze = list(
+            Quiz.objects.filter(titolo=titolo_quiz)
+            .annotate(n_domande=Count("domande"))[:2]
+        )
+        if not corrispondenze:
             errori.append(
-                f"La data deve essere compresa nel periodo di validità del quiz "
-                f"({quiz.data_inizio.strftime('%d/%m/%Y')} - {quiz.data_fine.strftime('%d/%m/%Y')})."
+                "Il quiz indicato non esiste: digitare un titolo presente nell'elenco suggerito."
             )
+        elif len(corrispondenze) > 1:
+            errori.append(
+                "Il titolo indicato corrisponde a più quiz: sceglierne uno dall'elenco suggerito."
+            )
+        elif corrispondenze[0].n_domande == 0:
+            errori.append("Il quiz selezionato non ha domande e non può ricevere partecipazioni.")
+        else:
+            quiz = corrispondenze[0]
+
+    errori_data, data_part = valida_data_partecipazione(data_str, quiz)
+    errori.extend(errori_data)
 
     return errori, utente, quiz, data_part
 
 
 def crea_partecipazione(request):
     """Gestisce la creazione di una nuova partecipazione: mostra il form in GET
-    e valida/salva i dati in POST, evitando duplicati utente-quiz-data."""
-    utente_id = ""
-    quiz_id = ""
+    e valida/salva i dati in POST, evitando duplicati utente-quiz-data. Utente e
+    quiz si digitano come testo con autocompletamento (username e titolo)."""
+    utente_input = ""
+    quiz_input = ""
     data_str = ""
     back_url = url_ritorno_sicuro(request, "ricerca_partecipazioni")
 
     if request.method == "POST":
-        utente_id = request.POST.get("utente", "").strip()
-        quiz_id = request.POST.get("quiz", "").strip()
+        utente_input = request.POST.get("utente", "").strip()
+        quiz_input = request.POST.get("quiz", "").strip()
         data_str = request.POST.get("data", "").strip()
 
         errori, utente, quiz, data_part = valida_partecipazione(
-            utente_id, quiz_id, data_str
+            utente_input, quiz_input, data_str
         )
 
         # Oltre alla validazione dei campi, verifica che non esista gia
@@ -605,9 +687,15 @@ def crea_partecipazione(request):
     contesto = {
         "active": "partecipazioni",
         "titolo_pagina": "Nuova partecipazione",
+        "modalita_modifica": False,
         "utenti": Utente.objects.order_by("nome_utente"),
-        "elenco_quiz": Quiz.objects.order_by("titolo"),
-        "valori": {"utente": utente_id, "quiz": quiz_id, "data": data_str},
+        # Solo i quiz con almeno una domanda possono ricevere partecipazioni.
+        "elenco_quiz": (
+            Quiz.objects.annotate(n_domande=Count("domande"))
+            .filter(n_domande__gt=0)
+            .order_by("titolo")
+        ),
+        "valori": {"utente": utente_input, "quiz": quiz_input, "data": data_str},
         "url_annulla": "ricerca_partecipazioni",
         "back_url": back_url,
     }
@@ -615,8 +703,10 @@ def crea_partecipazione(request):
 
 
 def modifica_partecipazione(request, partecipazione_id):
-    """Gestisce la modifica di una partecipazione esistente: precompila il form in GET
-    e valida/aggiorna i dati in POST, escludendo il record corrente dal controllo duplicati."""
+    """Gestisce la modifica di una partecipazione esistente: utente e quiz non sono
+    modificabili (cambiarli renderebbe incoerenti le risposte gia registrate) e sono
+    quindi mostrati in sola lettura; eventuali valori inviati per quei campi vengono
+    ignorati e l'unico campo validato/aggiornato e la data."""
     partecipazione = get_object_or_404(
         Partecipazione.objects.select_related("utente", "quiz"),
         pk=partecipazione_id,
@@ -624,20 +714,16 @@ def modifica_partecipazione(request, partecipazione_id):
     back_url = url_ritorno_sicuro(request, "ricerca_partecipazioni")
 
     if request.method == "POST":
-        utente_id = request.POST.get("utente", "").strip()
-        quiz_id = request.POST.get("quiz", "").strip()
         data_str = request.POST.get("data", "").strip()
 
-        errori, utente, quiz, data_part = valida_partecipazione(
-            utente_id, quiz_id, data_str
-        )
+        errori, data_part = valida_data_partecipazione(data_str, partecipazione.quiz)
 
         # Il controllo duplicati esclude il record che si sta modificando,
         # altrimenti la partecipazione risulterebbe sempre in conflitto con se stessa.
         if not errori:
             duplicata = (
                 Partecipazione.objects.filter(
-                    utente=utente, quiz=quiz, data=data_part
+                    utente=partecipazione.utente, quiz=partecipazione.quiz, data=data_part
                 )
                 .exclude(pk=partecipazione.pk)
                 .exists()
@@ -648,8 +734,6 @@ def modifica_partecipazione(request, partecipazione_id):
                 )
 
         if not errori:
-            partecipazione.utente = utente
-            partecipazione.quiz = quiz
             partecipazione.data = data_part
             try:
                 partecipazione.save()
@@ -662,20 +746,16 @@ def modifica_partecipazione(request, partecipazione_id):
         for errore in errori:
             messages.error(request, errore)
 
-        valori = {"utente": utente_id, "quiz": quiz_id, "data": data_str}
+        valori = {"data": data_str}
     else:
-        # Richiesta GET: precompila il form con i valori attuali della partecipazione.
-        valori = {
-            "utente": str(partecipazione.utente_id),
-            "quiz": str(partecipazione.quiz_id),
-            "data": partecipazione.data.isoformat(),
-        }
+        # Richiesta GET: precompila il form con la data attuale della partecipazione.
+        valori = {"data": partecipazione.data.isoformat()}
 
     contesto = {
         "active": "partecipazioni",
         "titolo_pagina": "Modifica partecipazione",
-        "utenti": Utente.objects.order_by("nome_utente"),
-        "elenco_quiz": Quiz.objects.order_by("titolo"),
+        "modalita_modifica": True,
+        "partecipazione": partecipazione,
         "valori": valori,
         "url_annulla": "ricerca_partecipazioni",
         "back_url": back_url,

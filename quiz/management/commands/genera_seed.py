@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils import timezone
 
 from quiz.models import (
     Utente,
@@ -801,8 +802,13 @@ class Command(BaseCommand):
         # Fase 5: crea migliaia di partecipazioni con distribuzione volutamente
         # sbilanciata: pochi quiz molto popolari, molti quiz medi e alcuni rari.
         self.stdout.write("Creazione partecipazioni e risposte utente...")
+        oggi = timezone.localdate()
+        # I quiz interamente nel futuro non possono avere partecipazioni (il modello
+        # vieta le date future); bulk_create non esegue le validazioni, quindi il
+        # vincolo va rispettato qui a monte.
         quiz_partecipabili = [
-            quiz for quiz in quiz_objs if quiz.id not in quiz_senza_partecipazioni_ids
+            quiz for quiz in quiz_objs
+            if quiz.id not in quiz_senza_partecipazioni_ids and quiz.data_inizio <= oggi
         ]
         pesi_quiz = []
         for posizione, quiz in enumerate(quiz_partecipabili, start=1):
@@ -824,7 +830,9 @@ class Command(BaseCommand):
             tentativi += 1
             utente = random.choice(utenti)
             quiz = random.choices(quiz_partecipabili, weights=pesi_quiz, k=1)[0]
-            data_part = data_casuale(quiz.data_inizio, quiz.data_fine)
+            # La data va scelta tra l'inizio del quiz e il minimo tra la sua fine e oggi,
+            # cosi da non generare mai partecipazioni con data futura.
+            data_part = data_casuale(quiz.data_inizio, min(quiz.data_fine, oggi))
             chiave = (utente.id, quiz.id, data_part)
             if chiave in coppie_usate:
                 continue

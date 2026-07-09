@@ -125,8 +125,8 @@ class PartecipazioneValidationTests(TestCase):
         response = self.client.post(
             reverse("crea_partecipazione"),
             {
-                "utente": str(self.utente.id),
-                "quiz": str(self.quiz.id),
+                "utente": self.utente.nome_utente,
+                "quiz": self.quiz.titolo,
                 "data": (timezone.localdate() + timedelta(days=1)).isoformat(),
             },
         )
