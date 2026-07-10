@@ -91,7 +91,7 @@
                 <td class="text-end">{{ utente.n_quiz_creati }}</td>
                 <td class="text-end">{{ utente.n_partecipazioni }}</td>
                 <td class="actions-cell">
-                    <a href="{% url 'dettaglio_utente' utente.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm">Dettaglio</a>
+                    <a href="{% url 'dettaglio_utente' utente.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm"><i class="bi bi-eye" aria-hidden="true"></i> Dettaglio</a>
                 </td>
             </tr>
             {% endfor %}

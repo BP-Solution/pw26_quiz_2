@@ -24,12 +24,12 @@
         {# Menu di navigazione laterale: evidenzia la voce attiva tramite la variabile "active". #}
         <nav class="site-nav">
             <div class="nav-section-title">Navigazione</div>
-            <a href="{% url 'home' %}" class="{% if active == 'home' %}active{% endif %}">Home</a>
+            <a href="{% url 'home' %}" class="{% if active == 'home' %}active{% endif %}"><i class="bi bi-house-door" aria-hidden="true"></i> Home</a>
 
             <div class="nav-section-title">Ricerca</div>
-            <a href="{% url 'ricerca_utenti' %}" class="{% if active == 'utenti' %}active{% endif %}">Utenti</a>
-            <a href="{% url 'ricerca_quiz' %}" class="{% if active == 'quiz' %}active{% endif %}">Quiz</a>
-            <a href="{% url 'ricerca_partecipazioni' %}" class="{% if active == 'partecipazioni' %}active{% endif %}">Partecipazioni</a>
+            <a href="{% url 'ricerca_utenti' %}" class="{% if active == 'utenti' %}active{% endif %}"><i class="bi bi-people" aria-hidden="true"></i> Utenti</a>
+            <a href="{% url 'ricerca_quiz' %}" class="{% if active == 'quiz' %}active{% endif %}"><i class="bi bi-ui-checks" aria-hidden="true"></i> Quiz</a>
+            <a href="{% url 'ricerca_partecipazioni' %}" class="{% if active == 'partecipazioni' %}active{% endif %}"><i class="bi bi-clipboard-check" aria-hidden="true"></i> Partecipazioni</a>
         </nav>
 
         {# Area principale: pannello di ricerca/filtri (opzionale) e contenuto specifico della pagina. #}

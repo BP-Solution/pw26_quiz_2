@@ -124,7 +124,10 @@
             {% for quiz in elenco_quiz %}
             <tr>
                 <td><a href="{% url 'dettaglio_quiz' quiz.id %}?next={{ request.get_full_path|urlencode }}" class="table-link stretched-link">{{ quiz.titolo }}</a></td>
-                <td><a href="{% url 'dettaglio_utente' quiz.creatore.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ quiz.creatore.nome_utente }}</a></td>
+                <td>
+                    {{ quiz.creatore.nome }} {{ quiz.creatore.cognome }}
+                    (<a href="{% url 'dettaglio_utente' quiz.creatore.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ quiz.creatore.nome_utente }}</a>)
+                </td>
                 <td class="text-end">{{ quiz.data_inizio|date:"d/m/Y" }}</td>
                 <td class="text-end">{{ quiz.data_fine|date:"d/m/Y" }}</td>
                 <td class="text-end">{{ quiz.n_domande }}</td>
@@ -133,7 +136,7 @@
                 <td class="text-end">{% if quiz.punteggio_minimo is not None %}{{ quiz.punteggio_minimo|floatformat:1 }}{% else %}—{% endif %}</td>
                 <td class="text-end">{% if quiz.punteggio_massimo is not None %}{{ quiz.punteggio_massimo|floatformat:1 }}{% else %}—{% endif %}</td>
                 <td class="actions-cell">
-                    <a href="{% url 'dettaglio_quiz' quiz.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm">Dettaglio</a>
+                    <a href="{% url 'dettaglio_quiz' quiz.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm"><i class="bi bi-eye" aria-hidden="true"></i> Dettaglio</a>
                 </td>
             </tr>
             {% endfor %}

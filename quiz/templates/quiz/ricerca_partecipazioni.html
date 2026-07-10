@@ -83,7 +83,7 @@
                 <td class="text-end"><a href="{% url 'dettaglio_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="table-link stretched-link">{{ partecipazione.data|date:"d/m/Y" }}</a></td>
                 <td class="text-end">{% if partecipazione.n_risposte > 0 %}{{ partecipazione.punteggio_totale|floatformat:1 }}{% else %}—{% endif %}</td>
                 <td class="actions-cell">
-                    <a href="{% url 'dettaglio_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm">Dettaglio</a>
+                    <a href="{% url 'dettaglio_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm"><i class="bi bi-eye" aria-hidden="true"></i> Dettaglio</a>
                     <a href="{% url 'modifica_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm"><i class="bi bi-pencil" aria-hidden="true"></i> Modifica</a>
                     <a href="{% url 'elimina_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-danger btn-sm"><i class="bi bi-trash" aria-hidden="true"></i> Elimina</a>
                 </td>
