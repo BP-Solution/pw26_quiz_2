@@ -217,6 +217,28 @@ class CreazionePartecipazioneRisposteTests(TestCase):
         self.assertContains(response, "Seconda domanda")
         self.assertContains(response, f'name="risposta_domanda_{self.domanda1.id}"')
 
+    def test_calendario_nativo_limita_il_periodo_e_conserva_i_campi(self):
+        response = self.client.post(
+            reverse("crea_partecipazione"),
+            {
+                "fase": "calendario",
+                "utente": self.utente.nome_utente,
+                "quiz": self.quiz.titolo,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'type="date" id="data" name="data"')
+        self.assertContains(
+            response, f'min="{self.quiz.data_inizio.isoformat()}"'
+        )
+        self.assertContains(
+            response, f'max="{timezone.localdate().isoformat()}"'
+        )
+        self.assertContains(response, "Le altre date sono disabilitate nel calendario.")
+        self.assertContains(response, f'value="{self.utente.nome_utente}"')
+        self.assertContains(response, f'value="{self.quiz.titolo}"')
+
     def test_risposte_complete_creano_partecipazione_e_risposte(self):
         response = self.client.post(
             reverse("crea_partecipazione"),

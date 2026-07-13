@@ -668,7 +668,36 @@ def costruisci_domande_risposta(quiz):
     return domande_risposta
 
 
-def form_scelta_partecipazione(request, back_url, utente_input="", quiz_input="", data_str=""):
+def risolvi_quiz_calendario(titolo_quiz):
+    """Risolve il quiz scelto per mostrare il calendario della prima fase."""
+    if not titolo_quiz:
+        return None, "Selezionare un quiz prima di visualizzare il calendario."
+
+    corrispondenze = list(
+        Quiz.objects.filter(titolo=titolo_quiz)
+        .annotate(n_domande=Count("domande"))[:2]
+    )
+    if not corrispondenze:
+        return (
+            None,
+            "Il quiz indicato non esiste: sceglierne uno dall'elenco suggerito.",
+        )
+    if len(corrispondenze) > 1:
+        return (
+            None,
+            "Il titolo indicato corrisponde a più quiz: sceglierne uno dall'elenco suggerito.",
+        )
+    if corrispondenze[0].n_domande == 0:
+        return (
+            None,
+            "Il quiz selezionato non ha domande e non può ricevere partecipazioni.",
+        )
+    return corrispondenze[0], None
+
+
+def form_scelta_partecipazione(
+    request, back_url, utente_input="", quiz_input="", data_str="", quiz_selezionato=None
+):
     """Prepara il contesto e la risposta per la prima fase (scelta di utente, quiz
     e data): factorizzata perche riusata sia dalla richiesta GET iniziale sia dai
     percorsi di errore della seconda fase."""
@@ -684,6 +713,17 @@ def form_scelta_partecipazione(request, back_url, utente_input="", quiz_input=""
             .order_by("titolo")
         ),
         "valori": {"utente": utente_input, "quiz": quiz_input, "data": data_str},
+        "quiz_selezionato": quiz_selezionato,
+        "data_massima_calendario": (
+            min(quiz_selezionato.data_fine, timezone.localdate())
+            if quiz_selezionato
+            else None
+        ),
+        "periodo_selezionabile": (
+            quiz_selezionato.data_inizio <= timezone.localdate()
+            if quiz_selezionato
+            else False
+        ),
         "url_annulla": "ricerca_partecipazioni",
         "back_url": back_url,
     }
@@ -709,6 +749,16 @@ def crea_partecipazione(request):
         utente_input = request.POST.get("utente", "").strip()
         quiz_input = request.POST.get("quiz", "").strip()
         data_str = request.POST.get("data", "").strip()
+
+        # Con soli HTML/CSS il cambio del quiz non può ridisegnare il calendario
+        # nel browser: questo submit intermedio lo genera sul server con Python.
+        if request.POST.get("fase") == "calendario":
+            quiz_selezionato, errore = risolvi_quiz_calendario(quiz_input)
+            if errore:
+                messages.error(request, errore)
+            return form_scelta_partecipazione(
+                request, back_url, utente_input, quiz_input, "", quiz_selezionato
+            )
 
         errori, utente, quiz, data_part = valida_partecipazione(
             utente_input, quiz_input, data_str
@@ -743,7 +793,10 @@ def crea_partecipazione(request):
         for errore in errori:
             messages.error(request, errore)
 
-    return form_scelta_partecipazione(request, back_url, utente_input, quiz_input, data_str)
+    quiz_selezionato = quiz if request.method == "POST" else None
+    return form_scelta_partecipazione(
+        request, back_url, utente_input, quiz_input, data_str, quiz_selezionato
+    )
 
 
 def salva_partecipazione_con_risposte(request, back_url):
