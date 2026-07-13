@@ -199,6 +199,15 @@ a:hover { text-decoration: underline; color: var(--beige-deeper); }
     align-items: flex-end;
 }
 
+/* Griglia a 2 colonne fisse: usata dove l'ordine dei campi su due righe
+   deve restare stabile indipendentemente dalla larghezza del pannello. */
+.filter-fields-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: flex-end;
+}
+
 .filter-actions {
     display: flex;
     gap: 10px;
@@ -1051,6 +1060,10 @@ a:hover { text-decoration: underline; color: var(--beige-deeper); }
     .form-group-compact {
         flex-basis: 100%;
         min-width: 0;
+    }
+
+    .filter-fields-2col {
+        grid-template-columns: 1fr;
     }
 
     .filter-actions {

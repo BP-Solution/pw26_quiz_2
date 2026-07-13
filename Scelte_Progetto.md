@@ -10,7 +10,7 @@ Il gruppo ha scelto la ristrutturazione del primo progetto con la tecnologia **P
 
 ## Database: SQLite
 
-Per la consegna è stato scelto SQLite al posto di MySQL. Motivazione: SQLite è integrato in Python e non richiede l'installazione né la configurazione di un server di database sulla macchina di verifica. Il file `db.sqlite3`, già popolato con dati sintetici (30 utenti, 50 quiz con relative domande, risposte e partecipazioni), è incluso nella consegna: l'installazione si riduce alla creazione dell'ambiente virtuale e all'avvio del server. Lo schema conserva i vincoli del database originale: le chiavi composte sono espresse con vincoli di unicità (`unique_together`) e il vincolo sul punteggio (valorizzato solo per le risposte di tipo Corretta) è garantito dalla logica applicativa, come nel primo progetto.
+Per la consegna è stato scelto SQLite al posto di MySQL. Motivazione: SQLite è integrato in Python e non richiede l'installazione né la configurazione di un server di database sulla macchina di verifica. Il file `db.sqlite3`, già popolato con dati sintetici (1000 utenti, 300 quiz con relative domande e risposte, 8000 partecipazioni), è incluso nella consegna: l'installazione si riduce alla creazione dell'ambiente virtuale e all'avvio del server, senza rieseguire il seed. Il dataset include volutamente anche casi limite: quiz senza domande, quiz senza partecipazioni e quiz con un numero di domande molto elevato. Lo schema conserva i vincoli del database originale: le chiavi composte sono espresse con vincoli di unicità (`unique_together`) e il vincolo sul punteggio (valorizzato solo per le risposte di tipo Corretta) è garantito dalla logica applicativa, come nel primo progetto.
 
 ## Struttura dell'applicazione
 
