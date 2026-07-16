@@ -1,0 +1,107 @@
+{# Scheda utente con riepilogo anagrafico, quiz creati e partecipazioni recenti. #}
+{% extends "quiz/base.html" %}
+
+{% block title %}{{ utente.nome_utente }}{% endblock %}
+
+{% block search_panel %}
+<div class="search-panel">
+    <div class="panel-header">
+        <h1>{{ utente.nome_utente }}</h1>
+        <a href="{{ back_url }}" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left" aria-hidden="true"></i> Torna indietro</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="detail-section">
+    <h2>Informazioni utente</h2>
+    <div class="detail-grid">
+        <div class="detail-field">
+            <label>Username</label>
+            <span>{{ utente.nome_utente }}</span>
+        </div>
+        <div class="detail-field">
+            <label>Nome</label>
+            <span>{{ utente.nome }}</span>
+        </div>
+        <div class="detail-field">
+            <label>Cognome</label>
+            <span>{{ utente.cognome }}</span>
+        </div>
+        <div class="detail-field">
+            <label>Email</label>
+            <span>{{ utente.email }}</span>
+        </div>
+        <div class="detail-field">
+            <label>Quiz creati</label>
+            <span>{{ n_quiz_creati }}</span>
+        </div>
+        <div class="detail-field">
+            <label>Partecipazioni</label>
+            <span>{{ n_partecipazioni }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="detail-section">
+    <h2>Quiz creati</h2>
+    {% if quiz_creati %}
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Titolo</th>
+                    <th class="text-end">Domande</th>
+                    <th class="text-end">Partecipazioni</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quiz in quiz_creati %}
+                <tr>
+                    <td><a href="{% url 'dettaglio_quiz' quiz.id %}?next={{ request.get_full_path|urlencode }}" class="table-link stretched-link">{{ quiz.titolo }}</a></td>
+                    <td class="text-end">{{ quiz.n_domande }}</td>
+                    <td class="text-end">{{ quiz.n_partecipazioni }}</td>
+                    <td class="actions-cell">
+                        <a href="{% url 'dettaglio_quiz' quiz.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm"><i class="bi bi-eye" aria-hidden="true"></i> Dettaglio</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="msg-empty">Questo utente non ha creato quiz.</div>
+    {% endif %}
+</div>
+
+<div class="detail-section">
+    <h2>Partecipazioni recenti</h2>
+    {% if partecipazioni %}
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Quiz</th>
+                    <th class="text-end">Data</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for partecipazione in partecipazioni %}
+                <tr>
+                    <td><a href="{% url 'dettaglio_quiz' partecipazione.quiz.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ partecipazione.quiz.titolo }}</a></td>
+                    <td class="text-end"><a href="{% url 'dettaglio_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="table-link stretched-link">{{ partecipazione.data|date:"d/m/Y" }}</a></td>
+                    <td class="actions-cell">
+                        <a href="{% url 'dettaglio_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm"><i class="bi bi-eye" aria-hidden="true"></i> Dettaglio</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="msg-empty">Questo utente non ha partecipazioni registrate.</div>
+    {% endif %}
+</div>
+{% endblock %}

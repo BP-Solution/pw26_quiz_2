@@ -1,9 +1,13 @@
+# Quiz Online - Progetto #2, gruppo BP Solutions
+# Comando di management "genera_seed": popola il database con dati sintetici
+# (utenti, quiz, domande, risposte, partecipazioni) per demo e test manuali.
 import random
 from datetime import date, timedelta
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils import timezone
 
 from quiz.models import (
     Utente,
@@ -16,32 +20,79 @@ from quiz.models import (
 
 
 # ── CONFIGURAZIONE ──────────────────────────────────────────
-N_UTENTI        = 30
-N_QUIZ          = 50
-MIN_DOMANDE     = 3
-MAX_DOMANDE     = 8
-MIN_RISPOSTE    = 3
-MAX_RISPOSTE    = 5
-MIN_PART        = 3   # partecipazioni minime per utente
-MAX_PART        = 8   # partecipazioni massime per utente
+N_UTENTI = 1000
+N_QUIZ = 300
+N_PARTECIPAZIONI = 8000
+
+N_QUIZ_SENZA_DOMANDE = 30
+N_QUIZ_SENZA_PARTECIPAZIONI = 35
+N_QUIZ_MOLTO_GRANDI = 12
+
+MIN_DOMANDE = 3
+MAX_DOMANDE = 10
+MIN_DOMANDE_GRANDI = 25
+MAX_DOMANDE_GRANDI = 45
+MIN_RISPOSTE = 3
+MAX_RISPOSTE = 5
+
+SEED_RANDOM = 20260709
+BATCH_SIZE = 1000
+DUPLICA_UTENTE_OGNI = 25
 # ────────────────────────────────────────────────────────────
 
-nomi    = ["Marco","Luca","Sara","Giulia","Andrea","Matteo","Anna","Chiara",
-           "Paolo","Elena","Davide","Francesca","Simone","Laura","Roberto",
-           "Valentina","Stefano","Alice","Giorgio","Marta","Nicola","Beatrice",
-           "Fabio","Silvia","Lorenzo","Federica","Daniele","Elisa","Riccardo","Sofia"]
+# Pool di nomi e cognomi usati per generare gli utenti sintetici.
+nomi = [
+    "Marco", "Luca", "Sara", "Giulia", "Andrea", "Matteo", "Anna", "Chiara",
+    "Paolo", "Elena", "Davide", "Francesca", "Simone", "Laura", "Roberto",
+    "Valentina", "Stefano", "Alice", "Giorgio", "Marta", "Nicola", "Beatrice",
+    "Fabio", "Silvia", "Lorenzo", "Federica", "Daniele", "Elisa", "Riccardo",
+    "Sofia", "Alessandro", "Alessia", "Gabriele", "Martina", "Tommaso",
+    "Camilla", "Edoardo", "Irene", "Filippo", "Greta", "Michele", "Viola",
+    "Leonardo", "Aurora", "Pietro", "Noemi", "Emanuele", "Rebecca", "Samuele",
+    "Arianna", "Cristian", "Gaia", "Manuel", "Ginevra", "Diego", "Nicole",
+    "Kevin", "Bianca", "Claudio", "Eleonora", "Massimo", "Serena", "Raffaele",
+    "Giorgia", "Antonio", "Caterina", "Enrico", "Letizia", "Mirko", "Carlotta",
+    "Piero", "Veronica", "Alberto", "Nadia", "Vittorio", "Diana", "Luigi",
+    "Monica", "Sergio", "Teresa", "Mauro", "Rachele", "Bruno", "Cristina",
+    "Ivan", "Margherita", "Oscar", "Adele", "Nicolò", "Flavia",
+]
 
-cognomi = ["Rossi","Bianchi","Verdi","Ferrari","Esposito","Romano","Colombo",
-           "Ricci","Marino","Greco","Bruno","Conti","De Luca","Mancini","Costa",
-           "Giordano","Rizzo","Lombardi","Moretti","Barbieri","Fontana","Santoro",
-           "Mariani","Rinaldi","Caruso","Ferrara","Gallo","Hart","Martini","Leone"]
+cognomi = [
+    "Rossi", "Bianchi", "Verdi", "Ferrari", "Esposito", "Romano", "Colombo",
+    "Ricci", "Marino", "Greco", "Bruno", "Conti", "De Luca", "Mancini",
+    "Costa", "Giordano", "Rizzo", "Lombardi", "Moretti", "Barbieri",
+    "Fontana", "Santoro", "Mariani", "Rinaldi", "Caruso", "Ferrara", "Gallo",
+    "Hart", "Martini", "Leone", "Longo", "Gentile", "Martinelli", "Vitale",
+    "Lombardo", "Serra", "Coppola", "De Santis", "D'Angelo", "Fiore",
+    "Pellegrini", "Grassi", "Testa", "Sala", "Parisi", "Villa", "Conte",
+    "Monti", "Fabbri", "Bianco", "Gatti", "Farina", "Ferraro", "Pagano",
+    "Sanna", "Mazza", "Cattaneo", "Amato", "Bernardi", "Silvestri",
+    "Palumbo", "Piras", "Neri", "Caputo", "Valentini", "Messina", "Orlando",
+    "Riva", "Donati", "Bellini", "Ferri", "Costa", "Moro", "Leoni",
+    "Marchetti", "De Rosa", "Basile", "Palmieri", "Fumagalli", "Damiani",
+    "Corsi", "Sartori", "Guerra", "Sorrentino", "Landi", "Pugliese",
+    "Mazzaferro", "Benedetti", "De Angelis", "Antonelli",
+]
 
+# Temi usati per comporre i titoli dei quiz generati.
 temi_quiz = ["SQL Base","Python Avanzato","Reti di Calcolatori","Algoritmi",
              "Basi di Dati","Programmazione Web","Sistemi Operativi","Java OOP",
              "Matematica Discreta","Sicurezza Informatica","HTML e CSS","JavaScript",
              "PHP e MySQL","Linux","Cloud Computing","Machine Learning","UML",
              "Architettura dei Computer","Ingegneria del Software","React"]
 
+sottoargomenti_quiz = [
+    "fondamenti", "query", "laboratorio", "progettazione", "debugging",
+    "performance", "sicurezza", "modellazione", "backend", "frontend",
+    "API", "testing", "normalizzazione", "reti", "processi", "memoria",
+]
+
+edizioni_quiz = [
+    "A", "B", "C", "recupero", "simulazione", "parziale", "finale",
+    "training", "autovalutazione", "laboratorio guidato",
+]
+
+# Testi delle domande realistiche assegnate ai quiz, a rotazione.
 testi_domande = [
     "Cosa si intende per chiave primaria?",
     "Qual è la differenza tra DELETE e TRUNCATE?",
@@ -75,6 +126,8 @@ testi_domande = [
     "Cosa è una Promise in JavaScript?",
 ]
 
+# Banca di risposte corrette/sbagliate specifiche per ciascuna domanda nota,
+# usata da scegli_risposte per generare contenuti coerenti col testo della domanda.
 risposte_per_domanda = {
     "Cosa si intende per chiave primaria?": {
         "Corretta": [
@@ -528,6 +581,8 @@ risposte_per_domanda = {
     },
 }
 
+# Risposte generiche di fallback, usate quando una domanda non ha una voce
+# dedicata in risposte_per_domanda.
 risposte_generiche = {
     "Corretta": [
         "Una definizione corretta del concetto richiesto",
@@ -546,23 +601,82 @@ risposte_generiche = {
 
 
 def data_casuale(inizio, fine):
+    """Restituisce una data casuale compresa nell'intervallo [inizio, fine]."""
     delta = (fine - inizio).days
     return inizio + timedelta(days=random.randint(0, delta))
 
 
 def scegli_risposte(testo_domanda, tipo, quantita):
+    """Seleziona un numero di risposte del tipo richiesto (Corretta/Sbagliata) per la
+    domanda indicata, pescando dal pool specifico o da quello generico se assente;
+    usa il campionamento senza ripetizioni quando possibile, altrimenti con ripetizioni."""
     pool = risposte_per_domanda.get(testo_domanda, risposte_generiche)[tipo]
     if quantita <= len(pool):
         return random.sample(pool, quantita)
     return random.choices(pool, k=quantita)
 
 
+def normalizza_slug(testo):
+    """Converte una stringa in un frammento adatto a username ed email."""
+    sostituzioni = {
+        "à": "a", "è": "e", "é": "e", "ì": "i", "ò": "o", "ù": "u",
+        "À": "a", "È": "e", "É": "e", "Ì": "i", "Ò": "o", "Ù": "u",
+    }
+    normalizzato = "".join(sostituzioni.get(carattere, carattere) for carattere in testo)
+    return "".join(carattere.lower() for carattere in normalizzato if carattere.isalnum())
+
+
+def profili_utenti_distinti(quantita):
+    """Genera molte identita diverse e alcuni omonimi controllati.
+
+    Ogni DUPLICA_UTENTE_OGNI utenti viene riusata una coppia nome/cognome gia
+    presente: l'email e lo username restano comunque univoci.
+    """
+    combinazioni_disponibili = [(nome, cognome) for nome in nomi for cognome in cognomi]
+    random.shuffle(combinazioni_disponibili)
+
+    profili = []
+    identita_uniche = []
+    indice_unico = 0
+    for i in range(quantita):
+        if i > 0 and i % DUPLICA_UTENTE_OGNI == 0 and identita_uniche:
+            nome, cognome = random.choice(identita_uniche)
+        else:
+            nome, cognome = combinazioni_disponibili[indice_unico % len(combinazioni_disponibili)]
+            indice_unico += 1
+            identita_uniche.append((nome, cognome))
+        profili.append((nome, cognome))
+
+    return profili
+
 
 class Command(BaseCommand):
+    """Comando 'genera_seed': ripopola da zero il database con un dataset
+    sintetico coerente di utenti, quiz, domande, risposte e partecipazioni."""
     help = "Popola il database con dati sintetici per il sistema di quiz."
+
+    def add_arguments(self, parser):
+        parser.add_argument("--utenti", type=int, default=N_UTENTI)
+        parser.add_argument("--quiz", type=int, default=N_QUIZ)
+        parser.add_argument("--partecipazioni", type=int, default=N_PARTECIPAZIONI)
+        parser.add_argument("--seed", type=int, default=SEED_RANDOM)
 
     @transaction.atomic
     def handle(self, *args, **options):
+        """Esegue il seed in un'unica transazione: svuota le tabelle esistenti
+        e ricrea in sequenza utenti, quiz, domande/risposte e partecipazioni.
+
+        Il dataset generato include intenzionalmente casi limite utili per
+        testare ricerca, paginazione e dettaglio: quiz senza domande, quiz
+        senza partecipazioni, quiz molto grandi e quiz molto popolari.
+        """
+        n_utenti = max(options["utenti"], N_UTENTI)
+        n_quiz = max(options["quiz"], N_QUIZ)
+        n_partecipazioni = max(options["partecipazioni"], N_PARTECIPAZIONI)
+        random.seed(options["seed"])
+
+        # Fase 1: pulizia completa dei dati esistenti, rispettando l'ordine
+        # delle dipendenze per evitare violazioni dei vincoli di integrita.
         self.stdout.write("Pulizia dati esistenti...")
         RispostaUtenteQuiz.objects.all().delete()
         Partecipazione.objects.all().delete()
@@ -571,111 +685,188 @@ class Command(BaseCommand):
         Quiz.objects.all().delete()
         Utente.objects.all().delete()
 
+        # Fase 2: creazione degli utenti, con username univoco derivato da nome e cognome.
         self.stdout.write("Creazione utenti...")
-        utenti = []
-        used_usernames = set()
-        for i in range(N_UTENTI):
-            nome = nomi[i % len(nomi)]
-            cognome = cognomi[i % len(cognomi)]
-            base = (nome[0] + cognome).lower().replace(" ", "")[:12]
-            username = base
-            suffix = 1
-            while username in used_usernames:
-                username = f"{base}{suffix}"
-                suffix += 1
-            used_usernames.add(username)
-            utente = Utente.objects.create(
+        utenti_da_creare = []
+        domini_email = ["example.test", "studenti.test", "mail.test", "demo.test"]
+        for i, (nome, cognome) in enumerate(profili_utenti_distinti(n_utenti)):
+            base = normalizza_slug(f"{nome[0]}{cognome}")[:14]
+            username = f"{base}{i + 1:04d}"
+            email = f"{normalizza_slug(nome)}.{normalizza_slug(cognome)}{i + 1:04d}@{domini_email[i % len(domini_email)]}"
+            utenti_da_creare.append(Utente(
                 nome_utente=username,
                 nome=nome,
                 cognome=cognome,
-                email=f"{username}@email.com",
-            )
-            utenti.append(utente)
+                email=email,
+            ))
+        Utente.objects.bulk_create(utenti_da_creare, batch_size=BATCH_SIZE)
+        utenti = list(Utente.objects.order_by("id"))
 
+        # Fase 3: creazione dei quiz, ciascuno assegnato a un creatore casuale
+        # e con un periodo di validita distribuito su anni diversi.
         self.stdout.write("Creazione quiz...")
-        quiz_objs = []
-        for i in range(1, N_QUIZ + 1):
+        quiz_da_creare = []
+        for i in range(1, n_quiz + 1):
             creatore = random.choice(utenti)
-            tema = random.choice(temi_quiz)
-            d_inizio = data_casuale(date(2023, 1, 1), date(2025, 1, 1))
-            d_fine = d_inizio + timedelta(days=random.randint(30, 365))
-            quiz = Quiz.objects.create(
+            tema = temi_quiz[(i - 1) % len(temi_quiz)]
+            sottoargomento = random.choice(sottoargomenti_quiz)
+            edizione = random.choice(edizioni_quiz)
+            anno_accademico = random.choice(["2022/2023", "2023/2024", "2024/2025", "2025/2026"])
+            livello = random.choice(["Base", "Intermedio", "Avanzato", "Laboratorio", "Esame"])
+            d_inizio = data_casuale(date(2022, 1, 1), date(2026, 5, 31))
+            d_fine = d_inizio + timedelta(days=random.choice([14, 30, 45, 90, 180, 365]))
+            quiz_da_creare.append(Quiz(
                 creatore=creatore,
-                titolo=f"Quiz {tema} #{i}",
+                titolo=f"{tema} - {sottoargomento} - {livello} {edizione} {anno_accademico} #{i:03d}",
                 data_inizio=d_inizio,
                 data_fine=d_fine,
-            )
-            quiz_objs.append(quiz)
+            ))
+        Quiz.objects.bulk_create(quiz_da_creare, batch_size=BATCH_SIZE)
+        quiz_objs = list(Quiz.objects.select_related("creatore").order_by("id"))
 
+        quiz_senza_domande_ids = {quiz.id for quiz in quiz_objs[:N_QUIZ_SENZA_DOMANDE]}
+        quiz_molto_grandi_ids = {
+            quiz.id
+            for quiz in quiz_objs[N_QUIZ_SENZA_DOMANDE:N_QUIZ_SENZA_DOMANDE + N_QUIZ_MOLTO_GRANDI]
+        }
+        quiz_senza_partecipazioni_ids = {quiz.id for quiz in quiz_objs[-N_QUIZ_SENZA_PARTECIPAZIONI:]}
+
+        # Fase 4: per ogni quiz genera un numero variabile di domande, assegnando
+        # i testi a rotazione da un pool mescolato per varieta tra i quiz.
         self.stdout.write("Creazione domande e risposte...")
         domande_per_quiz = {}
+        domande_da_creare = []
         testi_pool = testi_domande.copy()
         random.shuffle(testi_pool)
         testo_idx = 0
 
         for quiz in quiz_objs:
-            n_dom = random.randint(MIN_DOMANDE, MAX_DOMANDE)
-            domande_per_quiz[quiz.id] = []
+            if quiz.id in quiz_senza_domande_ids:
+                domande_per_quiz[quiz.id] = []
+                continue
 
+            if quiz.id in quiz_molto_grandi_ids:
+                n_dom = random.randint(MIN_DOMANDE_GRANDI, MAX_DOMANDE_GRANDI)
+            else:
+                n_dom = random.randint(MIN_DOMANDE, MAX_DOMANDE)
+
+            domande_per_quiz[quiz.id] = []
             for num_dom in range(1, n_dom + 1):
                 testo_dom = testi_pool[testo_idx % len(testi_pool)]
                 testo_idx += 1
-                domanda = Domanda.objects.create(
+                domande_da_creare.append(Domanda(
                     quiz=quiz,
                     numero=num_dom,
-                    testo=testo_dom,
-                )
+                    testo=f"{testo_dom} ({quiz.titolo})",
+                ))
 
-                n_risp = random.randint(MIN_RISPOSTE, MAX_RISPOSTE)
-                n_corrette = random.randint(1, max(1, n_risp - 1))
-                tipi = ["Corretta"] * n_corrette + ["Sbagliata"] * (n_risp - n_corrette)
-                random.shuffle(tipi)
+        Domanda.objects.bulk_create(domande_da_creare, batch_size=BATCH_SIZE)
+        domande = list(Domanda.objects.select_related("quiz").order_by("quiz_id", "numero"))
+        risposte_da_creare = []
 
-                testi_corretti = scegli_risposte(testo_dom, "Corretta", n_corrette)
-                testi_sbagliati = scegli_risposte(testo_dom, "Sbagliata", n_risp - n_corrette)
+        for domanda in domande:
+            testo_base = domanda.testo.split(" (", 1)[0]
+            n_risp = random.randint(MIN_RISPOSTE, MAX_RISPOSTE)
+            n_corrette = random.randint(1, max(1, n_risp - 1))
+            tipi = ["Corretta"] * n_corrette + ["Sbagliata"] * (n_risp - n_corrette)
+            random.shuffle(tipi)
 
-                risposte_obj = []
-                for num_risp, tipo in enumerate(tipi, start=1):
-                    if tipo == "Corretta":
-                        risposta = Risposta.objects.create(
-                            domanda=domanda,
-                            numero=num_risp,
-                            testo=testi_corretti.pop(),
-                            tipo="Corretta",
-                            punteggio=Decimal(str(round(random.uniform(0.5, 2.0), 1))),
-                        )
-                    else:
-                        risposta = Risposta.objects.create(
-                            domanda=domanda,
-                            numero=num_risp,
-                            testo=testi_sbagliati.pop(),
-                            tipo="Sbagliata",
-                            punteggio=None,
-                        )
-                    risposte_obj.append(risposta)
+            testi_corretti = scegli_risposte(testo_base, "Corretta", n_corrette)
+            testi_sbagliati = scegli_risposte(testo_base, "Sbagliata", n_risp - n_corrette)
 
-                domande_per_quiz[quiz.id].append((domanda, risposte_obj))
+            for num_risp, tipo in enumerate(tipi, start=1):
+                if tipo == "Corretta":
+                    testo = testi_corretti.pop()
+                    punteggio = Decimal(str(round(random.uniform(0.5, 2.0), 1)))
+                else:
+                    testo = testi_sbagliati.pop()
+                    punteggio = None
+                risposte_da_creare.append(Risposta(
+                    domanda=domanda,
+                    numero=num_risp,
+                    testo=testo,
+                    tipo=tipo,
+                    punteggio=punteggio,
+                ))
 
+        Risposta.objects.bulk_create(risposte_da_creare, batch_size=BATCH_SIZE)
+
+        risposte_per_domanda_id = {}
+        for risposta in Risposta.objects.select_related("domanda").order_by("domanda_id", "numero"):
+            risposte_per_domanda_id.setdefault(risposta.domanda_id, []).append(risposta)
+        for domanda in domande:
+            domande_per_quiz.setdefault(domanda.quiz_id, []).append(
+                (domanda, risposte_per_domanda_id[domanda.id])
+            )
+
+        # Fase 5: crea migliaia di partecipazioni con distribuzione volutamente
+        # sbilanciata: pochi quiz molto popolari, molti quiz medi e alcuni rari.
         self.stdout.write("Creazione partecipazioni e risposte utente...")
-        for utente in utenti:
-            n_part = random.randint(MIN_PART, MAX_PART)
-            quiz_scelti = random.sample(quiz_objs, min(n_part, len(quiz_objs)))
+        oggi = timezone.localdate()
+        # I quiz interamente nel futuro non possono avere partecipazioni (il modello
+        # vieta le date future); bulk_create non esegue le validazioni, quindi il
+        # vincolo va rispettato qui a monte.
+        quiz_partecipabili = [
+            quiz for quiz in quiz_objs
+            if quiz.id not in quiz_senza_partecipazioni_ids and quiz.data_inizio <= oggi
+        ]
+        pesi_quiz = []
+        for posizione, quiz in enumerate(quiz_partecipabili, start=1):
+            if quiz.id in quiz_molto_grandi_ids:
+                peso = 24
+            elif posizione <= 40:
+                peso = 15
+            elif posizione <= 150:
+                peso = 6
+            else:
+                peso = 2
+            pesi_quiz.append(peso)
 
-            for quiz in quiz_scelti:
-                data_part = data_casuale(quiz.data_inizio, quiz.data_fine)
-                partecipazione = Partecipazione.objects.create(
-                    utente=utente,
-                    quiz=quiz,
-                    data=data_part,
-                )
+        partecipazioni_da_creare = []
+        coppie_usate = set()
+        tentativi = 0
+        max_tentativi = n_partecipazioni * 10
+        while len(partecipazioni_da_creare) < n_partecipazioni and tentativi < max_tentativi:
+            tentativi += 1
+            utente = random.choice(utenti)
+            quiz = random.choices(quiz_partecipabili, weights=pesi_quiz, k=1)[0]
+            # La data va scelta tra l'inizio del quiz e il minimo tra la sua fine e oggi,
+            # cosi da non generare mai partecipazioni con data futura.
+            data_part = data_casuale(quiz.data_inizio, min(quiz.data_fine, oggi))
+            chiave = (utente.id, quiz.id, data_part)
+            if chiave in coppie_usate:
+                continue
+            coppie_usate.add(chiave)
+            partecipazioni_da_creare.append(Partecipazione(
+                utente=utente,
+                quiz=quiz,
+                data=data_part,
+            ))
 
-                for domanda, risposte_obj in domande_per_quiz[quiz.id]:
-                    risposta_scelta = random.choice(risposte_obj)
-                    RispostaUtenteQuiz.objects.create(
-                        partecipazione=partecipazione,
-                        domanda=domanda,
-                        risposta=risposta_scelta,
+        Partecipazione.objects.bulk_create(partecipazioni_da_creare, batch_size=BATCH_SIZE)
+
+        risposte_utente_da_creare = []
+        partecipazioni = list(Partecipazione.objects.select_related("quiz").order_by("id"))
+        for partecipazione in partecipazioni:
+            for domanda, risposte_obj in domande_per_quiz.get(partecipazione.quiz_id, []):
+                risposta_scelta = random.choice(risposte_obj)
+                risposte_utente_da_creare.append(RispostaUtenteQuiz(
+                    partecipazione=partecipazione,
+                    domanda=domanda,
+                    risposta=risposta_scelta,
+                ))
+                if len(risposte_utente_da_creare) >= BATCH_SIZE:
+                    RispostaUtenteQuiz.objects.bulk_create(
+                        risposte_utente_da_creare,
+                        batch_size=BATCH_SIZE,
                     )
+                    risposte_utente_da_creare = []
+
+        if risposte_utente_da_creare:
+            RispostaUtenteQuiz.objects.bulk_create(
+                risposte_utente_da_creare,
+                batch_size=BATCH_SIZE,
+            )
 
         self.stdout.write(self.style.SUCCESS("Seed completato."))
         self.stdout.write(f"  Utenti:         {Utente.objects.count()}")
@@ -684,3 +875,6 @@ class Command(BaseCommand):
         self.stdout.write(f"  Risposte:       {Risposta.objects.count()}")
         self.stdout.write(f"  Partecipazioni: {Partecipazione.objects.count()}")
         self.stdout.write(f"  Risposte date:  {RispostaUtenteQuiz.objects.count()}")
+        self.stdout.write(f"  Quiz senza domande:         {len(quiz_senza_domande_ids)}")
+        self.stdout.write(f"  Quiz senza partecipazioni:  {len(quiz_senza_partecipazioni_ids)}")
+        self.stdout.write(f"  Quiz molto grandi:          {len(quiz_molto_grandi_ids)}")

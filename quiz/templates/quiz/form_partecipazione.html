@@ -1,0 +1,103 @@
+{# Form condiviso per la creazione e la modifica di una partecipazione (titolo e URL di annullamento variano in base al contesto). #}
+{% extends "quiz/base.html" %}
+
+{% block title %}{{ titolo_pagina }}{% endblock %}
+
+{# Intestazione con titolo dinamico e link per tornare all'elenco partecipazioni. #}
+{% block search_panel %}
+<div class="search-panel">
+    <div class="panel-header">
+        <h1>{{ titolo_pagina }}</h1>
+        <a href="{{ back_url }}" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left" aria-hidden="true"></i> Torna indietro</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{# Messaggi di errore di validazione o di conferma restituiti dalla view. #}
+{% if messages %}
+    {% for message in messages %}
+        {% if message.tags == "error" %}
+        <div class="alert alert-danger" role="alert">{{ message }}</div>
+        {% else %}
+        <div class="alert alert-success" role="alert">{{ message }}</div>
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+{# Form con selezione utente, selezione quiz e data della partecipazione. #}
+<div class="crud-card">
+    <h2>{{ titolo_pagina }}</h2>
+    <form method="post" class="crud-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ back_url }}">
+        <div class="form-group">
+            <label for="utente">Utente</label>
+            {% if modalita_modifica %}
+            {# Utente non modificabile: cambiarlo renderebbe incoerenti le risposte già registrate. #}
+            <div class="form-static">{{ partecipazione.utente.nome_utente }} ({{ partecipazione.utente.nome }} {{ partecipazione.utente.cognome }})</div>
+            {% else %}
+            <input type="text" id="utente" name="utente" list="elenco-utenti" value="{{ valori.utente }}" placeholder="Digitare lo username" autocomplete="off">
+            <datalist id="elenco-utenti">
+                {% for u in utenti %}
+                <option value="{{ u.nome_utente }}">{{ u.nome }} {{ u.cognome }}</option>
+                {% endfor %}
+            </datalist>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="quiz">Quiz</label>
+            {% if modalita_modifica %}
+            {# Quiz non modificabile: cambiarlo renderebbe incoerenti le risposte già registrate. #}
+            <div class="form-static">{{ partecipazione.quiz.titolo }}</div>
+            {% else %}
+            <input type="text" id="quiz" name="quiz" list="elenco-quiz" value="{{ valori.quiz }}" placeholder="Digitare il titolo del quiz" autocomplete="off">
+            <datalist id="elenco-quiz">
+                {% for q in elenco_quiz %}
+                <option value="{{ q.titolo }}">{{ q.data_inizio|date:"d/m/Y" }} – {{ q.data_fine|date:"d/m/Y" }}</option>
+                {% endfor %}
+            </datalist>
+            {% endif %}
+        </div>
+
+        {% if modalita_modifica %}
+        <div class="form-group">
+            <label for="data">Data partecipazione</label>
+            <input type="date" id="data" name="data" value="{{ valori.data }}">
+        </div>
+        {% else %}
+        <div class="form-group">
+            <label for="data">Data partecipazione</label>
+            <div class="native-calendar-row">
+                <input type="date" id="data" name="data" value="{{ valori.data }}"
+                       {% if quiz_selezionato %}min="{{ quiz_selezionato.data_inizio|date:'Y-m-d' }}" max="{{ data_massima_calendario|date:'Y-m-d' }}"{% endif %}
+                       {% if not periodo_selezionabile %}disabled{% else %}required{% endif %}>
+                <button type="submit" name="fase" value="calendario" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                    {% if quiz_selezionato %}Aggiorna periodo{% else %}Carica periodo{% endif %}
+                </button>
+            </div>
+            {% if quiz_selezionato %}
+                {% if periodo_selezionabile %}
+                <small class="form-help">Date disponibili dal <strong>{{ quiz_selezionato.data_inizio|date:"d/m/Y" }}</strong> al <strong>{{ data_massima_calendario|date:"d/m/Y" }}</strong>. Le altre date sono disabilitate nel calendario.</small>
+                {% else %}
+                <small class="form-help form-help-warning">Il periodo del quiz inizia il {{ quiz_selezionato.data_inizio|date:"d/m/Y" }}: non ci sono ancora date selezionabili.</small>
+                {% endif %}
+            {% else %}
+            <small class="form-help">Seleziona un quiz e premi “Carica periodo” per abilitare il calendario.</small>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="form-actions">
+            {% if modalita_modifica %}
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save" aria-hidden="true"></i> Salva</button>
+            {% elif quiz_selezionato and periodo_selezionabile %}
+            <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right" aria-hidden="true"></i> Continua</button>
+            {% endif %}
+            <a href="{{ back_url }}" class="btn btn-secondary"><i class="bi bi-x-lg" aria-hidden="true"></i> Annulla</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

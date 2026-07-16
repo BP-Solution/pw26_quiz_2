@@ -1,0 +1,87 @@
+{# Scheda partecipazione con riepilogo e risposte date dall'utente. #}
+{% extends "quiz/base.html" %}
+
+{% block title %}Dettaglio partecipazione{% endblock %}
+
+{% block search_panel %}
+<div class="search-panel">
+    <div class="panel-header">
+        <h1>Dettaglio partecipazione</h1>
+        <a href="{{ back_url }}" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left" aria-hidden="true"></i> Torna indietro</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="detail-section">
+    <h2>Riepilogo</h2>
+    <div class="detail-grid">
+        <div class="detail-field">
+            <label>Utente</label>
+            <span>
+                <a href="{% url 'dettaglio_utente' partecipazione.utente.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ partecipazione.utente.nome_utente }}</a>
+                (<a href="{% url 'dettaglio_utente' partecipazione.utente.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ partecipazione.utente.nome }}</a>
+                <a href="{% url 'dettaglio_utente' partecipazione.utente.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ partecipazione.utente.cognome }}</a>)
+            </span>
+        </div>
+        <div class="detail-field">
+            <label>Quiz</label>
+            <span><a href="{% url 'dettaglio_quiz' partecipazione.quiz.id %}?next={{ request.get_full_path|urlencode }}" class="table-link">{{ partecipazione.quiz.titolo }}</a></span>
+        </div>
+        <div class="detail-field">
+            <label>Data</label>
+            <span>{{ partecipazione.data|date:"d/m/Y" }}</span>
+        </div>
+        <div class="detail-field">
+            <label>Risposte date</label>
+            <span>{{ risposte_date|length }}</span>
+        </div>
+        <div class="detail-field">
+            <label>Punteggio totale</label>
+            <span>{% if risposte_date %}{{ punteggio_totale|floatformat:1 }}{% else %}—{% endif %}</span>
+        </div>
+    </div>
+    <div class="detail-actions">
+        <a href="{% url 'modifica_partecipazione' partecipazione.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-secondary"><i class="bi bi-pencil" aria-hidden="true"></i> Modifica</a>
+        <a href="{% url 'elimina_partecipazione' partecipazione.id %}?next={{ back_url|urlencode }}" class="btn btn-danger"><i class="bi bi-trash" aria-hidden="true"></i> Elimina</a>
+    </div>
+</div>
+
+<div class="detail-section">
+    <h2>Risposte</h2>
+    {% if risposte_date %}
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th class="text-end">Domanda</th>
+                    <th>Testo domanda</th>
+                    <th>Risposta scelta</th>
+                    <th>Tipo</th>
+                    <th class="text-end">Punteggio</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for risposta_data in risposte_date %}
+                <tr>
+                    <td class="text-end">{{ risposta_data.domanda.numero }}</td>
+                    <td>{{ risposta_data.domanda.testo }}</td>
+                    <td>{{ risposta_data.risposta.testo }}</td>
+                    <td>
+                        {% if risposta_data.risposta.tipo == "Corretta" %}
+                        <span class="badge badge-success">Corretta</span>
+                        {% else %}
+                        <span class="badge badge-danger">Sbagliata</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">{% if risposta_data.risposta.punteggio is not None %}{{ risposta_data.risposta.punteggio }}{% else %}—{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="msg-empty">Questa partecipazione non ha risposte collegate.</div>
+    {% endif %}
+</div>
+{% endblock %}

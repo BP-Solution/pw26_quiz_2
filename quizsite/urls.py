@@ -19,5 +19,6 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Include tutte le rotte applicative definite in quiz/urls.py sotto la root del sito.
     path('', include('quiz.urls')),
 ]

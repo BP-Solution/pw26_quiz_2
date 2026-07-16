@@ -1,0 +1,53 @@
+{# Pagina di conferma eliminazione di una partecipazione, con riepilogo dei dati prima della cancellazione definitiva. #}
+{% extends "quiz/base.html" %}
+
+{% block title %}Elimina partecipazione{% endblock %}
+
+{# Intestazione con link per tornare all'elenco partecipazioni senza eliminare nulla. #}
+{% block search_panel %}
+<div class="search-panel">
+    <div class="panel-header">
+        <h1>Elimina partecipazione</h1>
+        <a href="{{ back_url }}" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left" aria-hidden="true"></i> Torna indietro</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{# Riepilogo della partecipazione e form di conferma dell'eliminazione. #}
+<div class="crud-card">
+    <h2>Confermare l'eliminazione?</h2>
+
+    <div class="delete-summary detail-grid">
+        <div class="detail-field">
+            <label>Utente</label>
+            <span>{{ partecipazione.utente.nome_utente }} ({{ partecipazione.utente.nome }} {{ partecipazione.utente.cognome }})</span>
+        </div>
+        <div class="detail-field">
+            <label>Quiz</label>
+            <span>{{ partecipazione.quiz.titolo }}</span>
+        </div>
+        <div class="detail-field">
+            <label>Data</label>
+            <span>{{ partecipazione.data|date:"d/m/Y" }}</span>
+        </div>
+        <div class="detail-field">
+            <label>Risposte collegate</label>
+            <span>{{ partecipazione.risposte_date.count }}</span>
+        </div>
+    </div>
+
+    <div class="delete-warning">
+        Attenzione: eliminando la partecipazione verranno eliminate anche tutte le risposte date dall'utente in questa partecipazione. L'operazione non è reversibile.
+    </div>
+
+    <form method="post" class="crud-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ back_url }}">
+        <div class="form-actions">
+            <button type="submit" class="btn btn-danger"><i class="bi bi-trash" aria-hidden="true"></i> Elimina definitivamente</button>
+            <a href="{{ back_url }}" class="btn btn-secondary"><i class="bi bi-x-lg" aria-hidden="true"></i> Annulla</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

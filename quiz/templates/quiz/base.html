@@ -1,3 +1,4 @@
+{# Layout base del sito: header, menu di navigazione laterale, area contenuti e footer. Ogni pagina lo estende definendo i blocchi title, search_panel e content. #}
 {% load static %}
 <!DOCTYPE html>
 <html lang="it">
@@ -5,28 +6,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Quiz Online{% endblock %} — BP Solutions</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'quiz/style.css' %}">
+    <link rel="stylesheet" href="{% static 'quiz/vendor/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'quiz/vendor/fonts/fonts.css' %}">
+    <link rel="stylesheet" href="{% static 'quiz/vendor/bootstrap-icons/bootstrap-icons.css' %}">
+    <link rel="stylesheet" href="{% static 'quiz/style.css' %}?v=20260709-7">
 </head>
 <body>
 <div class="page-wrapper">
 
+    {# Intestazione con il logo, comune a tutte le pagine. #}
     <header class="site-header">
         <a href="{% url 'home' %}" class="logo">BP <span>Solutions</span></a>
     </header>
 
     <div class="body-layout">
 
+        {# Menu di navigazione laterale: evidenzia la voce attiva tramite la variabile "active". #}
         <nav class="site-nav">
             <div class="nav-section-title">Navigazione</div>
-            <a href="{% url 'home' %}" class="{% if active == 'home' %}active{% endif %}">Home</a>
+            <a href="{% url 'home' %}" class="{% if active == 'home' %}active{% endif %}"><i class="bi bi-house-door" aria-hidden="true"></i> Home</a>
 
             <div class="nav-section-title">Ricerca</div>
-            <a href="#" class="{% if active == 'utenti' %}active{% endif %}">Utenti</a>
-            <a href="#" class="{% if active == 'quiz' %}active{% endif %}">Quiz</a>
-            <a href="#" class="{% if active == 'partecipazioni' %}active{% endif %}">Partecipazioni</a>
+            <a href="{% url 'ricerca_utenti' %}" class="{% if active == 'utenti' %}active{% endif %}"><i class="bi bi-people" aria-hidden="true"></i> Utenti</a>
+            <a href="{% url 'ricerca_quiz' %}" class="{% if active == 'quiz' %}active{% endif %}"><i class="bi bi-ui-checks" aria-hidden="true"></i> Quiz</a>
+            <a href="{% url 'ricerca_partecipazioni' %}" class="{% if active == 'partecipazioni' %}active{% endif %}"><i class="bi bi-clipboard-check" aria-hidden="true"></i> Partecipazioni</a>
         </nav>
 
+        {# Area principale: pannello di ricerca/filtri (opzionale) e contenuto specifico della pagina. #}
         <div class="main-area">
             {% block search_panel %}{% endblock %}
             <div class="content-area">
@@ -36,11 +42,12 @@
 
     </div>
 
+    {# Piè di pagina comune a tutte le pagine. #}
     <footer class="site-footer">
         Progetto d'esame — Programmazione Web 2025-2026 — Gruppo BP Solutions
     </footer>
 
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'quiz/vendor/bootstrap.bundle.min.js' %}"></script>
 </body>
 </html>
